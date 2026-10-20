@@ -110,7 +110,7 @@ export async function saveOnboarding(targetScore: number, dailyGoal: number): Pr
 
 // ---------- Learning ----------
 /** New words from startTier upward (then lower tiers), tier → dayNo → freqRank. */
-export async function getTodayWords(opts: { extra?: boolean } = {}): Promise<Word[]> {
+export async function getTodayWords(opts: { extra?: boolean | undefined } = {}): Promise<Word[]> {
   await delay();
   const db = load();
   const id = requireUser(db);
