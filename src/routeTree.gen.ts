@@ -14,7 +14,16 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
+import { Route as AuthenticatedMoreRouteImport } from './routes/_authenticated/more'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
+import { Route as AuthenticatedWrongNotesRouteImport } from './routes/_authenticated/wrong-notes'
+import { Route as AuthenticatedDaysIndexRouteImport } from './routes/_authenticated/days.index'
+import { Route as AuthenticatedDaysDayNoRouteImport } from './routes/_authenticated/days.$dayNo'
+import { Route as AuthenticatedQuizIndexRouteImport } from './routes/_authenticated/quiz.index'
+import { Route as AuthenticatedQuizResultRouteImport } from './routes/_authenticated/quiz.result'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,9 +49,54 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLearnRoute = AuthenticatedLearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMoreRoute = AuthenticatedMoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedReviewRoute = AuthenticatedReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedWrongNotesRoute = AuthenticatedWrongNotesRouteImport.update({
+  id: '/wrong-notes',
+  path: '/wrong-notes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDaysIndexRoute = AuthenticatedDaysIndexRouteImport.update({
+  id: '/days/',
+  path: '/days/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDaysDayNoRoute = AuthenticatedDaysDayNoRouteImport.update({
+  id: '/days/$dayNo',
+  path: '/days/$dayNo',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedQuizIndexRoute = AuthenticatedQuizIndexRouteImport.update({
+  id: '/quiz/',
+  path: '/quiz/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedQuizResultRoute = AuthenticatedQuizResultRouteImport.update({
+  id: '/quiz/result',
+  path: '/quiz/result',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
@@ -51,14 +105,32 @@ export interface FileRoutesByFullPath {
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/learn': typeof AuthenticatedLearnRoute
+  '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/review': typeof AuthenticatedReviewRoute
+  '/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/quiz/result': typeof AuthenticatedQuizResultRoute
+  '/days/': typeof AuthenticatedDaysIndexRoute
+  '/quiz/': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/home': typeof AuthenticatedHomeRoute
+  '/learn': typeof AuthenticatedLearnRoute
+  '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/review': typeof AuthenticatedReviewRoute
+  '/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/quiz/result': typeof AuthenticatedQuizResultRoute
+  '/days': typeof AuthenticatedDaysIndexRoute
+  '/quiz': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,13 +139,50 @@ export interface FileRoutesById {
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/learn': typeof AuthenticatedLearnRoute
+  '/_authenticated/more': typeof AuthenticatedMoreRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/review': typeof AuthenticatedReviewRoute
+  '/_authenticated/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/_authenticated/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/_authenticated/quiz/result': typeof AuthenticatedQuizResultRoute
+  '/_authenticated/days/': typeof AuthenticatedDaysIndexRoute
+  '/_authenticated/quiz/': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/licenses' | '/login' | '/signup' | '/onboarding'
+  fullPaths:
+    | '/'
+    | '/licenses'
+    | '/login'
+    | '/signup'
+    | '/home'
+    | '/learn'
+    | '/more'
+    | '/onboarding'
+    | '/review'
+    | '/wrong-notes'
+    | '/days/$dayNo'
+    | '/quiz/result'
+    | '/days/'
+    | '/quiz/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/licenses' | '/login' | '/signup' | '/onboarding'
+  to:
+    | '/'
+    | '/licenses'
+    | '/login'
+    | '/signup'
+    | '/home'
+    | '/learn'
+    | '/more'
+    | '/onboarding'
+    | '/review'
+    | '/wrong-notes'
+    | '/days/$dayNo'
+    | '/quiz/result'
+    | '/days'
+    | '/quiz'
   id:
     | '__root__'
     | '/'
@@ -81,7 +190,16 @@ export interface FileRouteTypes {
     | '/licenses'
     | '/login'
     | '/signup'
+    | '/_authenticated/home'
+    | '/_authenticated/learn'
+    | '/_authenticated/more'
     | '/_authenticated/onboarding'
+    | '/_authenticated/review'
+    | '/_authenticated/wrong-notes'
+    | '/_authenticated/days/$dayNo'
+    | '/_authenticated/quiz/result'
+    | '/_authenticated/days/'
+    | '/_authenticated/quiz/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,6 +247,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/learn': {
+      id: '/_authenticated/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof AuthenticatedLearnRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/more': {
+      id: '/_authenticated/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof AuthenticatedMoreRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -136,15 +275,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/review': {
+      id: '/_authenticated/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AuthenticatedReviewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/wrong-notes': {
+      id: '/_authenticated/wrong-notes'
+      path: '/wrong-notes'
+      fullPath: '/wrong-notes'
+      preLoaderRoute: typeof AuthenticatedWrongNotesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/days/': {
+      id: '/_authenticated/days/'
+      path: '/days'
+      fullPath: '/days/'
+      preLoaderRoute: typeof AuthenticatedDaysIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/days/$dayNo': {
+      id: '/_authenticated/days/$dayNo'
+      path: '/days/$dayNo'
+      fullPath: '/days/$dayNo'
+      preLoaderRoute: typeof AuthenticatedDaysDayNoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/quiz/': {
+      id: '/_authenticated/quiz/'
+      path: '/quiz'
+      fullPath: '/quiz/'
+      preLoaderRoute: typeof AuthenticatedQuizIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/quiz/result': {
+      id: '/_authenticated/quiz/result'
+      path: '/quiz/result'
+      fullPath: '/quiz/result'
+      preLoaderRoute: typeof AuthenticatedQuizResultRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedLearnRoute: typeof AuthenticatedLearnRoute
+  AuthenticatedMoreRoute: typeof AuthenticatedMoreRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedReviewRoute: typeof AuthenticatedReviewRoute
+  AuthenticatedWrongNotesRoute: typeof AuthenticatedWrongNotesRoute
+  AuthenticatedDaysDayNoRoute: typeof AuthenticatedDaysDayNoRoute
+  AuthenticatedQuizResultRoute: typeof AuthenticatedQuizResultRoute
+  AuthenticatedDaysIndexRoute: typeof AuthenticatedDaysIndexRoute
+  AuthenticatedQuizIndexRoute: typeof AuthenticatedQuizIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedLearnRoute: AuthenticatedLearnRoute,
+  AuthenticatedMoreRoute: AuthenticatedMoreRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedReviewRoute: AuthenticatedReviewRoute,
+  AuthenticatedWrongNotesRoute: AuthenticatedWrongNotesRoute,
+  AuthenticatedDaysDayNoRoute: AuthenticatedDaysDayNoRoute,
+  AuthenticatedQuizResultRoute: AuthenticatedQuizResultRoute,
+  AuthenticatedDaysIndexRoute: AuthenticatedDaysIndexRoute,
+  AuthenticatedQuizIndexRoute: AuthenticatedQuizIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
