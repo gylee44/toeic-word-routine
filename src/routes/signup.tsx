@@ -28,7 +28,7 @@ function Signup() {
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const errors: Record<string, string> = {};
+  const errors: Partial<Record<keyof typeof f, string>> = {};
   if (!f.name.trim()) errors.name = "이름을 입력해 주세요.";
   if (!/^\S+@\S+\.\S+$/.test(f.email)) errors.email = "올바른 이메일 형식이 아니에요.";
   if (f.password.length < 8) errors.password = "비밀번호는 8자 이상이어야 해요.";

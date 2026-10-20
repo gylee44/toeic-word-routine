@@ -46,7 +46,7 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
     if (saving) return;
     setSaving(true);
     try {
-      await recordFlashcard(words[idx].id, known, mode);
+      await recordFlashcard(words[idx]!.id, known, mode);
       setFlipped(false);
       setIdx((i) => i + 1);
     } catch (e) {
@@ -83,7 +83,7 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
       </div>
       {title && <p className="mt-3 text-center text-sm font-medium text-muted-foreground">{title}</p>}
       <div className="flex flex-1 items-center py-6">
-        <Flashcard word={words[idx]} flipped={flipped} onFlip={onFlip} />
+        <Flashcard word={words[idx]!} flipped={flipped} onFlip={onFlip} />
       </div>
       <div className="grid grid-cols-2 gap-3 pb-2">
         <Button size="xl" variant="secondary" disabled={saving} onClick={() => answer(false)}>모르겠어요</Button>
