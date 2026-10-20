@@ -30,3 +30,30 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment / secrets (키는 .env.example에 이름만 둔다)
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.temp
+supabase/.branches
+supabase/.env
+
+# Seed scripts: service role 키 등 로컬 전용 파일
+seed/.env
+seed/*.local.*
+
+# Test / build artifacts
+coverage
+*.tsbuildinfo
+playwright-report
+test-results
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Claude Code local settings
+.claude/settings.local.json
