@@ -46,7 +46,7 @@ function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
 }
@@ -70,7 +70,7 @@ export async function signUp(name: string, email: string, password: string): Pro
   db.profiles[id] = { userId: id, name: name.trim(), email: e, targetScore: null, dailyGoal: null, startTier: null, onboarded: false };
   db.session = id;
   save(db);
-  return db.profiles[id];
+  return db.profiles[id]!;
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
@@ -80,7 +80,7 @@ export async function signIn(email: string, password: string): Promise<Profile> 
   if (!u) throw new Error("이메일 또는 비밀번호가 올바르지 않아요.");
   db.session = u.id;
   save(db);
-  return db.profiles[u.id];
+  return db.profiles[u.id]!;
 }
 
 export async function signOut(): Promise<void> {
@@ -103,9 +103,9 @@ export async function saveOnboarding(targetScore: number, dailyGoal: number): Pr
   await delay();
   const db = load();
   const id = requireUser(db);
-  db.profiles[id] = { ...db.profiles[id], targetScore, dailyGoal, startTier: START_TIER_BY_TARGET[targetScore] ?? 500, onboarded: true };
+  db.profiles[id] = { ...db.profiles[id]!, targetScore, dailyGoal, startTier: START_TIER_BY_TARGET[targetScore] ?? 500, onboarded: true };
   save(db);
-  return db.profiles[id];
+  return db.profiles[id]!;
 }
 
 // ---------- Learning ----------
@@ -114,7 +114,7 @@ export async function getTodayWords(opts: { extra?: boolean } = {}): Promise<Wor
   await delay();
   const db = load();
   const id = requireUser(db);
-  const p = db.profiles[id];
+  const p = db.profiles[id]!;
   const goal = p.dailyGoal ?? 10;
   const count = opts.extra ? goal : goal - todayLearnedCount(db, id);
   if (count <= 0) return [];
@@ -194,7 +194,7 @@ export async function recordQuizAnswer(wordId: string, choiceWordId: string, mod
     next.correctStreak = 0;
     next.lastWrongAt = new Date().toISOString();
   }
-  next.nextReviewAt = addDays(today, SRS_INTERVALS[next.box]);
+  next.nextReviewAt = addDays(today, SRS_INTERVALS[next.box] ?? 0);
   prog[wordId] = next;
   logEvent(db, id, { wordId, type: "quiz", mode, correct: isCorrect });
   save(db);
@@ -236,7 +236,7 @@ export async function getDays(): Promise<DaySummary[]> {
     const ev = events.filter((e) => ids.has(e.wordId));
     return {
       dayNo,
-      tier: ws[0].tier,
+      tier: ws[0]!.tier,
       total: ws.length,
       learned: ws.filter((w) => prog[w.id]).length,
       accuracy: ev.length ? Math.round((ev.filter((e) => e.correct).length / ev.length) * 100) : null,
@@ -262,5 +262,5 @@ export async function getHomeSummary(): Promise<{ todayLearned: number; dailyGoa
     streak++;
     d = addDays(d, -1);
   }
-  return { todayLearned: todayLearnedCount(db, id), dailyGoal: db.profiles[id].dailyGoal ?? 10, reviewDue, streak };
+  return { todayLearned: todayLearnedCount(db, id), dailyGoal: db.profiles[id]!.dailyGoal ?? 10, reviewDue, streak };
 }

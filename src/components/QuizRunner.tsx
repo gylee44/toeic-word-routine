@@ -19,7 +19,7 @@ export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyM
   const [submitting, setSubmitting] = useState(false);
   const lock = useRef(false);
   const results = useRef<{ id: string; ok: boolean }[]>([]);
-  const word = words[idx];
+  const word = words[idx]!;
 
   useEffect(() => {
     setChoices(null);
