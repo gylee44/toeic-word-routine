@@ -40,6 +40,7 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
   const [flipped, setFlipped] = useState(false);
   const [saving, setSaving] = useState(false);
   const done = idx >= words.length;
+  const label = title ?? "오늘의 학습";
   const onFlip = useCallback(() => setFlipped((f) => !f), []);
 
   async function answer(known: boolean) {
@@ -58,7 +59,7 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
 
   if (done) {
     return (
-      <div className="flex min-h-dvh flex-col py-6">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col py-6 lg:min-h-[calc(100dvh-72px)]">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <PartyPopper className="h-14 w-14 text-primary" aria-hidden />
           <h1 className="mt-4 text-2xl font-bold">{words.length}개 단어를 모두 봤어요!</h1>
@@ -75,20 +76,23 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
   }
 
   return (
-    <div className="flex min-h-dvh flex-col py-4">
-      <div className="flex items-center gap-3">
+    <div className="mx-auto flex min-h-dvh w-full flex-col py-4 lg:min-h-0 lg:max-w-[880px] lg:gap-6 lg:pb-16 lg:pt-12">
+      <div className="flex items-center gap-3 lg:gap-4">
         <ExitButton onExit={() => navigate({ to: "/home" })} />
-        <ProgressBar value={idx} max={words.length} label="학습 진행률" />
-        <span className="shrink-0 text-sm font-semibold tabular-nums">{idx + 1} / {words.length}</span>
+        <span className="hidden shrink-0 text-sm font-medium text-muted-foreground lg:block">{label}</span>
+        <ProgressBar value={idx} max={words.length} label="학습 진행률" className="flex-1" />
+        <span className="shrink-0 text-sm font-bold tabular-nums">{idx + 1} / {words.length}</span>
       </div>
-      {title && <p className="mt-3 text-center text-sm font-medium text-muted-foreground">{title}</p>}
-      <div className="flex flex-1 items-center py-6">
+      <p className="mt-2.5 text-center text-[13px] text-muted-foreground lg:hidden">{label}</p>
+      <div className="flex flex-1 items-center py-6 lg:flex-none lg:py-0">
         <Flashcard word={words[idx]!} flipped={flipped} onFlip={onFlip} />
       </div>
-      <div className="grid grid-cols-2 gap-3 pb-2">
+      <p className="hidden text-center text-[13px] text-muted-foreground lg:block">탭하거나 스페이스바로 뒤집기</p>
+      <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:pt-4">
         <Button size="xl" variant="secondary" disabled={saving} onClick={() => answer(false)}>모르겠어요</Button>
         <Button size="xl" disabled={saving} onClick={() => answer(true)}>알아요</Button>
       </div>
+      <p className="mt-3 pb-1 text-center text-xs leading-normal text-muted-foreground lg:mt-0 lg:pb-0">모르겠어요는 오늘 다시, 알아요는 내일 복습해요</p>
     </div>
   );
 }

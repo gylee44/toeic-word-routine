@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/PageHeader";
+import { AuthLayout } from "@/components/AuthLayout";
 import { useRedirectIfAuthed } from "@/components/ProtectedRoute";
 import { errorMessage } from "@/components/useErrorToast";
 import { signUp } from "@/lib/api";
@@ -58,32 +59,33 @@ function Signup() {
         type={type}
         autoComplete={auto}
         value={f[key]}
-        className="h-12 rounded-xl text-base"
         aria-invalid={!!(touched[key] && errors[key])}
         aria-describedby={`${key}-err`}
         onChange={(e) => setF({ ...f, [key]: e.target.value })}
         onBlur={() => setTouched({ ...touched, [key]: true })}
       />
-      {touched[key] && errors[key] && <p id={`${key}-err`} className="text-sm text-destructive">{errors[key]}</p>}
+      {touched[key] && errors[key] && (
+        <p id={`${key}-err`} className="flex items-center gap-1.5 text-[13px] text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+          {errors[key]}
+        </p>
+      )}
     </div>
   );
 
   return (
-    <div className="flex min-h-dvh flex-col py-6">
-      <Link to="/"><Logo /></Link>
-      <h1 className="mt-10 text-2xl font-bold">회원가입</h1>
-      <p className="mt-1 text-muted-foreground">30초면 시작할 수 있어요.</p>
-      <form onSubmit={submit} noValidate className="mt-8 grid gap-5">
+    <AuthLayout title="회원가입" description="30초면 시작할 수 있어요.">
+      <form onSubmit={submit} noValidate className="grid gap-5">
         {field("name", "이름", "text", "name")}
         {field("email", "이메일", "email", "email")}
         {field("password", "비밀번호 (8자 이상)", "password", "new-password")}
         {field("confirm", "비밀번호 확인", "password", "new-password")}
-        {serverError && <p role="alert" className="rounded-xl bg-danger-soft p-3 text-sm text-destructive">{serverError}</p>}
+        {serverError && <p role="alert" className="flex items-center gap-2 rounded-lg bg-danger-soft p-3 text-sm font-medium text-destructive"><AlertCircle className="h-4 w-4 shrink-0" aria-hidden />{serverError}</p>}
         <Button type="submit" size="xl" disabled={loading}>{loading ? "가입 중..." : "가입하기"}</Button>
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         이미 계정이 있나요? <Link to="/login" search={{ redirect: undefined }} className="font-semibold text-primary">로그인</Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }

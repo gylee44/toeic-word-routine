@@ -54,26 +54,29 @@ export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyM
   }
 
   return (
-    <div className="flex min-h-dvh flex-col py-4">
-      <div className="flex items-center gap-3">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col py-4 lg:min-h-0 lg:max-w-[880px] lg:pb-16 lg:pt-12">
+      <div className="flex items-center gap-3 lg:gap-4">
         <ExitButton onExit={() => navigate({ to: "/home" })} />
-        <ProgressBar value={idx + (selected ? 1 : 0)} max={words.length} label="퀴즈 진행률" />
-        <span className="shrink-0 text-sm font-semibold tabular-nums">{idx + 1} / {words.length}</span>
+        <span className="hidden shrink-0 text-sm font-medium text-muted-foreground lg:block">{title}</span>
+        <ProgressBar value={idx + (selected ? 1 : 0)} max={words.length} label="퀴즈 진행률" className="flex-1" />
+        <span className="shrink-0 text-sm font-bold tabular-nums">{idx + 1} / {words.length}</span>
       </div>
-      <p className="mt-3 text-center text-sm font-medium text-muted-foreground">{title}</p>
-      <div className="flex-1 py-5">
+      <p className="mt-2.5 text-center text-[13px] text-muted-foreground lg:hidden">{title}</p>
+      <div className="flex-1 py-5 lg:flex-none lg:pb-6 lg:pt-7">
         {choices ? (
           <QuizQuestion word={word} choices={choices} selectedId={selected} submitting={submitting} onSelect={select} />
         ) : (
           <div className="grid gap-3">
-            <Skeleton className="h-44 rounded-3xl" />
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-2xl" />)}
+            <Skeleton className="h-36 rounded-[18px]" />
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[58px] rounded-[14px]" />)}
           </div>
         )}
       </div>
-      <Button size="xl" disabled={!selected} onClick={next}>
-        {idx + 1 >= words.length ? "결과 보기" : "다음"}
-      </Button>
+      <div className="lg:flex lg:justify-end">
+        <Button size="xl" className="w-full lg:w-auto lg:px-10" disabled={!selected} onClick={next}>
+          {idx + 1 >= words.length ? "결과 보기" : "다음"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -130,6 +130,17 @@ export async function getWordsByIds(ids: string[]): Promise<Word[]> {
   return ids.map(wordById);
 }
 
+/** 오늘(KST) 처음 학습한 단어. 홈의 "오늘 학습한 단어" 목록에 쓴다. */
+export async function getTodayLearnedWords(): Promise<Word[]> {
+  await delay();
+  const db = load();
+  const id = requireUser(db);
+  const today = todayKST();
+  return Object.values(db.progress[id] || {})
+    .filter((p) => p.firstStudiedAt === today)
+    .map((p) => wordById(p.wordId));
+}
+
 export async function recordFlashcard(wordId: string, known: boolean, mode: StudyMode): Promise<void> {
   await delay(80);
   const db = load();
@@ -249,7 +260,8 @@ export async function getDayWords(dayNo: number): Promise<Word[]> {
   return WORDS.filter((w) => w.dayNo === dayNo).sort((a, b) => a.freqRank - b.freqRank);
 }
 
-export async function getHomeSummary(): Promise<{ todayLearned: number; dailyGoal: number; reviewDue: number; streak: number }> {
+export interface HomeSummary { todayLearned: number; dailyGoal: number; reviewDue: number; streak: number; /** 최근 7일 중 학습한 날짜(YYYY-MM-DD, KST) */ studiedDates: string[] }
+export async function getHomeSummary(): Promise<HomeSummary> {
   await delay();
   const db = load();
   const id = requireUser(db);
@@ -262,5 +274,7 @@ export async function getHomeSummary(): Promise<{ todayLearned: number; dailyGoa
     streak++;
     d = addDays(d, -1);
   }
-  return { todayLearned: todayLearnedCount(db, id), dailyGoal: db.profiles[id]!.dailyGoal ?? 10, reviewDue, streak };
+  const weekStart = addDays(today, -6);
+  const studiedDates = [...dates].filter((d) => d >= weekStart && d <= today).sort();
+  return { todayLearned: todayLearnedCount(db, id), dailyGoal: db.profiles[id]!.dailyGoal ?? 10, reviewDue, streak, studiedDates };
 }
