@@ -15,9 +15,9 @@
 | 영역 | 상태 |
 |---|---|
 | Supabase DB | 완료. 테이블 4개(`profiles`, `words`, `user_word_progress`, `study_events`), RLS, 가입 트리거, RPC 6개, 단어 400개(tier당 80개, AI 초안, 사람 검수 전) |
-| 마이그레이션 | `supabase/migrations/` 6개. Supabase CLI는 설치하지 않았고 MCP `apply_migration`으로 적용한 뒤 로컬 파일명을 원격 버전에 맞췄다 |
+| 마이그레이션 | `supabase/migrations/` 7개. Supabase CLI는 설치하지 않았고 MCP `apply_migration`으로 적용한 뒤 로컬 파일명을 원격 버전에 맞췄다 |
 | 검증 | DB 쪽 CRUD, RLS, 하루 상한, 복습 분산, 관리자 무제한을 테스트 계정으로 확인했다. 항목별 결과는 `docs/acceptance-checklist.md` |
-| 프론트엔드 | `api.ts`를 Supabase로 교체했다(이메일 인증, Google 로그인, 학습·퀴즈·복습·오답노트·홈). Day 목록 화면과 mock 단어는 삭제했다. 실제 Supabase로 `api.ts` 전 함수를 테스트 계정으로 검증했다 |
+| 프론트엔드 | `api.ts`를 Supabase로 교체했다(이메일 인증, Google 로그인, 학습·퀴즈·복습·오답노트·홈). Day 목록 화면과 mock 단어는 삭제했다. 실제 Supabase로 `api.ts` 전 함수를 테스트 계정으로 검증했다. 단어장 화면(`/words`), 브라우저 음성 발음 듣기, 퀴즈 이어 풀기를 추가했다(PRD v0.8) |
 | 남은 일 | 브라우저 화면 검증(모바일·데스크톱), Google 로그인 실제 확인, Supabase Redirect URLs 설정, 데모 계정 시드, 단어 검수, 배포·CI, 라이선스 화면(P1) |
 
 ## 2. 응답 및 작업 규칙
@@ -89,10 +89,12 @@ src/components/             공용 컴포넌트 (Container, SiteHeader, AuthLayo
 src/styles.css              디자인 토큰 (색상 oklch, 서체)
 src/lib/constants.ts        학습 규칙 상수
 src/lib/supabase.ts         Supabase 클라이언트 (PKCE, api.ts에서만 사용)
+src/lib/speech.ts           발음 듣기 (브라우저 Web Speech API, SpeakButton에서 사용)
+src/lib/session.ts          퀴즈 대기열·결과·이어 풀기 기록 (sessionStorage)
 src/routes/auth.callback.tsx  Google 로그인·이메일 인증 링크가 돌아오는 페이지
 src/types.ts                공용 타입
-supabase/migrations/        스키마, RLS, RPC (SQL, 적용 완료 6개)
-seed/                       (아래 파일은 NGSL/TSL의 CC BY-SA 라이선스 확인 전이라 아직 커밋하지 않고 로컬에만 둔다)
+supabase/migrations/        스키마, RLS, RPC (SQL, 적용 완료 7개)
+seed/                       (NGSL/TSL의 CC BY-SA 라이선스 확인 전이라 폴더 전체를 gitignore하고 로컬에만 둔다)
 seed/config.mjs             시드 상수 (tier 경계, 데모 단어 수, 제외 기능어)
 seed/build-candidates.mjs   NGSL/TSL에서 후보 단어 선정
 seed/word-content.mjs       단어별 품사·뜻·예문 (AI 초안, 검수 대상)
@@ -113,6 +115,7 @@ seed/raw/                   NGSL·TSL 원본 (gitignore, 저장소에 올리지 
 ### 학습 규칙 (상세는 PRD 9장)
 - SRS 간격: box 0~4 → `[0, 1, 3, 7, 14]`일. 서버 SQL이 기준이고, `constants.ts`는 화면 표시용으로 같은 값을 유지한다.
 - 퀴즈 정답 box+1 (최대 4, box 4 정답 시 mastered) / 오답 box 0. 퀴즈는 진행 정보가 있는 단어만 대상
+- 단계 상승은 단어마다 하루(KST) 한 번만. 같은 날 다시 맞히면 기록만 남고 box·복습일·`correct_streak`는 그대로다. 그래서 오답노트 해제(연속 2회 정답)도 서로 다른 날 맞혀야 한다
 - 플래시카드(첫 학습만): 알아요 → box 1, +1일 / 모르겠어요 → box 0, 당일. 이미 학습한 단어는 box를 바꾸지 않고 기록만 남김
 - 복습 대상: `next_review_at <= 오늘` (mastered 포함)
 - 오답노트: `wrong_count > 0 AND correct_streak < 2`, `last_wrong_at` 내림차순
@@ -129,11 +132,13 @@ seed/raw/                   NGSL·TSL 원본 (gitignore, 저장소에 올리지 
 - 채점, SRS 갱신, 퀴즈 보기 생성은 서버(RPC)에서 처리한다.
 - 프론트엔드 환경변수는 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`(구 anon 키)만 사용한다. 키 이름만 `.env.example`에 두고 값은 `.env`(gitignore)에만 둔다.
 - service role 키는 필요할 때만 `seed/.env`(gitignore)에 둔다. 코드, 저장소, 로그, 대화에 출력하지 않는다. 현재 단어 적재는 MCP로 하므로 service role 키를 쓰지 않는다.
-- `.mcp.json`(Supabase 프로젝트 ref 포함), `seed/raw/`, 설치형 스킬(`.agents/`, `.claude/skills/`)은 gitignore 대상이다.
+- `.mcp.json`(Supabase 프로젝트 ref 포함), `seed/`(라이선스 확인 전), 설치형 스킬(`.agents/`, `.claude/skills/`), 디자인 점검 도구 산출물(`.impeccable/`)은 gitignore 대상이다.
 - 스키마 변경은 반드시 `supabase/migrations`에 SQL 파일로 작성한다. 대시보드 직접 수정 금지
 
 ### UI
 - 모든 화면 문구는 한국어
+- 메뉴는 홈 / 단어장 / 오답노트 / 더보기 4개 (`BottomNav.tsx`의 `NAV_TABS`)
+- 발음 듣기는 브라우저 음성 합성만 쓴다(외부 TTS API·키 없음). 미지원 환경에서는 버튼을 숨긴다
 - 모바일 우선. 데스크톱(lg, 1024px 이상)은 상단 메뉴 + 최대 1120px 콘텐츠 (상세는 PRD 12.3). 320px ~ 1920px에서 가로 스크롤이 없어야 한다.
 - 색상과 서체는 `src/styles.css` 토큰만 쓴다. 포인트 컬러는 플럼(`primary`), 단어와 큰 숫자는 `font-serif`(Source Serif 4). 하드코딩한 색상값을 쓰지 않는다.
 - 로딩, 오류(재시도), 빈 화면 상태를 빠짐없이 처리한다.
@@ -145,7 +150,7 @@ seed/raw/                   NGSL·TSL 원본 (gitignore, 저장소에 올리지 
 - **P0(데모 필수)를 먼저 끝낸다.** P1은 P0 완료 후 진행한다.
 - 목요일(10/22) 오전까지 P0가 끝나지 않으면 P1을 중단하고 배포를 우선한다.
 - P0: 이메일 인증, 온보딩, 오늘의 학습, 플래시카드, 퀴즈, SRS 복습, 오답노트 목록, 홈 진행률·복습 대기 수, RLS, 반응형, 면책 문구
-- P1: 소셜 로그인, 오답 다시 학습, 연속 학습일, 설정 변경, 라이선스 화면
+- P1: 소셜 로그인, 오답 다시 학습, 연속 학습일, 설정 변경, 라이선스 화면, 단어장, 발음 듣기
 
 ## 9. Git 규칙
 
