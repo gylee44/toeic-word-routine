@@ -8,17 +8,17 @@
 - 토익 빈출 단어를 플래시카드 → 4지선다 퀴즈 → 자동 복습(SRS) → 오답노트로 학습하는 **모바일 우선 반응형 웹서비스**
 - 모든 학습 기능은 **로그인 필수** (게스트 모드 없음)
 - 목표: **10/23(금) Demo Day까지 MVP 배포 완료**
-- 현재 상태: DB는 Supabase에 구축 완료, 프론트엔드는 아직 mock 데이터 + localStorage (전환 작업은 별도 세션)
+- 현재 상태: DB는 Supabase에 구축 완료, 프론트엔드도 Supabase 연동 완료(mock·localStorage 제거). 배포 전 화면 검증 단계
 
 ### 구현 현황 (2026-10-21)
 
 | 영역 | 상태 |
 |---|---|
-| Supabase DB | 완료. 테이블 4개(`profiles`, `words`, `user_word_progress`, `study_events`), RLS, 가입 트리거, RPC 6개, 단어 200개(tier당 40개, AI 초안, 사람 검수 전) |
+| Supabase DB | 완료. 테이블 4개(`profiles`, `words`, `user_word_progress`, `study_events`), RLS, 가입 트리거, RPC 6개, 단어 400개(tier당 80개, AI 초안, 사람 검수 전) |
 | 마이그레이션 | `supabase/migrations/` 6개. Supabase CLI는 설치하지 않았고 MCP `apply_migration`으로 적용한 뒤 로컬 파일명을 원격 버전에 맞췄다 |
 | 검증 | DB 쪽 CRUD, RLS, 하루 상한, 복습 분산, 관리자 무제한을 테스트 계정으로 확인했다. 항목별 결과는 `docs/acceptance-checklist.md` |
-| 프론트엔드 | mock(localStorage) 상태. `api.ts`를 Supabase로 교체하고 Day 목록 화면을 삭제하는 작업이 남아 있다 |
-| 남은 일 | 데모 계정 시드, 단어 뜻·예문 검수, 배포·CI, 이메일 인증 설정, 라이선스 화면(P1) |
+| 프론트엔드 | `api.ts`를 Supabase로 교체했다(이메일 인증, Google 로그인, 학습·퀴즈·복습·오답노트·홈). Day 목록 화면과 mock 단어는 삭제했다. 실제 Supabase로 `api.ts` 전 함수를 테스트 계정으로 검증했다 |
+| 남은 일 | 브라우저 화면 검증(모바일·데스크톱), Google 로그인 실제 확인, Supabase Redirect URLs 설정, 데모 계정 시드, 단어 검수, 배포·CI, 라이선스 화면(P1) |
 
 ## 2. 응답 및 작업 규칙
 
@@ -88,9 +88,9 @@ src/routes/                 화면 (TanStack Router 파일 기반 라우팅, 로
 src/components/             공용 컴포넌트 (Container, SiteHeader, AuthLayout, BottomNav, 진행 바 등)
 src/styles.css              디자인 토큰 (색상 oklch, 서체)
 src/lib/constants.ts        학습 규칙 상수
-src/lib/supabase.ts         Supabase 클라이언트 (미작성, 프론트 전환 시 추가)
+src/lib/supabase.ts         Supabase 클라이언트 (PKCE, api.ts에서만 사용)
+src/routes/auth.callback.tsx  Google 로그인·이메일 인증 링크가 돌아오는 페이지
 src/types.ts                공용 타입
-src/data/words.ts           mock 단어 (Supabase 전환 후 제거)
 supabase/migrations/        스키마, RLS, RPC (SQL, 적용 완료 6개)
 seed/                       (아래 파일은 NGSL/TSL의 CC BY-SA 라이선스 확인 전이라 아직 커밋하지 않고 로컬에만 둔다)
 seed/config.mjs             시드 상수 (tier 경계, 데모 단어 수, 제외 기능어)
