@@ -157,6 +157,7 @@ seed/raw/                   NGSL·TSL 원본 (gitignore, 저장소에 올리지 
 - `main`에 직접 커밋하지 않는다. `feat/*`, `fix/*` 브랜치에서 작업 후 PR
 - 커밋 메시지: `타입: 한국어 요약` (예: `feat: 퀴즈 보기 생성 RPC 연동`)
   - 타입: feat, fix, refactor, style, docs, chore, db
+  - 커밋 메시지와 PR 본문에 `Co-Authored-By: Claude ...`, "Generated with Claude Code" 같은 AI 작성자 표시를 넣지 않는다. 작성자는 저장소 사용자 한 명으로만 남긴다.
 - 커밋 전 `npx tsc --noEmit`과 `npm run build`가 통과해야 한다.
 - `.env`는 커밋하지 않는다. 새 환경변수는 `.env.example`에 키만 추가한다.
 
