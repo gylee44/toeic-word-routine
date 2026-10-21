@@ -8,17 +8,20 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { QuizQuestion } from "@/components/QuizQuestion";
 import { errorMessage } from "@/components/useErrorToast";
 import { getQuizChoices, recordQuizAnswer, type QuizChoice } from "@/lib/api";
-import { setQuizResult } from "@/lib/session";
+import { clearQuizProgress, getQuizProgress, setQuizProgress, setQuizResult } from "@/lib/session";
 import type { StudyMode, Word } from "@/types";
 
 export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyMode; title: string }) {
   const navigate = useNavigate();
-  const [idx, setIdx] = useState(0);
+  const ids = words.map((w) => w.id);
+  // 풀던 기록이 있으면 푼 개수만큼 건너뛰고 이어서 푼다
+  const [saved] = useState(() => getQuizProgress(mode, ids)?.results ?? []);
+  const [idx, setIdx] = useState(saved.length);
   const [choices, setChoices] = useState<QuizChoice[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const lock = useRef(false);
-  const results = useRef<{ id: string; ok: boolean }[]>([]);
+  const results = useRef<{ id: string; ok: boolean }[]>(saved);
   const word = words[idx]!;
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyM
     try {
       const { isCorrect } = await recordQuizAnswer(word.id, choiceId, mode);
       results.current.push({ id: word.id, ok: isCorrect });
+      setQuizProgress({ mode, ids, results: results.current });
       setSelected(choiceId);
     } catch (e) {
       toast.error(errorMessage(e), { action: { label: "다시 시도", onClick: () => select(choiceId) } });
@@ -46,6 +50,7 @@ export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyM
     if (idx + 1 >= words.length) {
       const r = results.current;
       setQuizResult({ mode, total: r.length, correct: r.filter((x) => x.ok).length, wrongIds: r.filter((x) => !x.ok).map((x) => x.id) });
+      clearQuizProgress();
       navigate({ to: "/quiz/result", replace: true });
       return;
     }
@@ -72,7 +77,8 @@ export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyM
           </div>
         )}
       </div>
-      <div className="lg:flex lg:justify-end">
+      {/* 모바일에서는 화면 아래에 고정해 해설 길이와 상관없이 같은 자리에서 누를 수 있다 */}
+      <div className="sticky bottom-0 z-10 -mx-5 bg-background px-5 pb-4 pt-3 lg:static lg:mx-0 lg:flex lg:justify-end lg:bg-transparent lg:p-0">
         <Button size="xl" className="w-full lg:w-auto lg:px-10" disabled={!selected} onClick={next}>
           {idx + 1 >= words.length ? "결과 보기" : "다음"}
         </Button>

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Home, MoreHorizontal, NotebookPen } from "lucide-react";
+import { BookOpen, Home, MoreHorizontal, NotebookPen } from "lucide-react";
 
 export const NAV_TABS = [
   { to: "/home", label: "홈", icon: Home },
+  { to: "/words", label: "단어장", icon: BookOpen },
   { to: "/wrong-notes", label: "오답노트", icon: NotebookPen },
   { to: "/more", label: "더보기", icon: MoreHorizontal },
 ] as const;
@@ -11,7 +12,7 @@ export const NAV_TABS = [
 export function BottomNav() {
   return (
     <nav aria-label="주요 메뉴" className="fixed inset-x-0 bottom-0 z-40 border-t bg-card lg:hidden">
-      <ul className="mx-auto grid max-w-[480px] grid-cols-3">
+      <ul className="mx-auto grid max-w-[480px] grid-cols-4">
         {NAV_TABS.map(({ to, label, icon: Icon }) => (
           <li key={to}>
             <Link

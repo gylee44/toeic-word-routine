@@ -19,6 +19,7 @@ import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMoreRouteImport } from './routes/_authenticated/more'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
+import { Route as AuthenticatedWordsRouteImport } from './routes/_authenticated/words'
 import { Route as AuthenticatedWrongNotesRouteImport } from './routes/_authenticated/wrong-notes'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedQuizIndexRouteImport } from './routes/_authenticated/quiz.index'
@@ -73,6 +74,11 @@ const AuthenticatedReviewRoute = AuthenticatedReviewRouteImport.update({
   path: '/review',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedWordsRoute = AuthenticatedWordsRouteImport.update({
+  id: '/words',
+  path: '/words',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedWrongNotesRoute = AuthenticatedWrongNotesRouteImport.update({
   id: '/wrong-notes',
   path: '/wrong-notes',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/review': typeof AuthenticatedReviewRoute
+  '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/review': typeof AuthenticatedReviewRoute
+  '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated/more': typeof AuthenticatedMoreRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/review': typeof AuthenticatedReviewRoute
+  '/_authenticated/words': typeof AuthenticatedWordsRoute
   '/_authenticated/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/quiz/result': typeof AuthenticatedQuizResultRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/more'
     | '/onboarding'
     | '/review'
+    | '/words'
     | '/wrong-notes'
     | '/auth/callback'
     | '/quiz/result'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/more'
     | '/onboarding'
     | '/review'
+    | '/words'
     | '/wrong-notes'
     | '/auth/callback'
     | '/quiz/result'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/_authenticated/more'
     | '/_authenticated/onboarding'
     | '/_authenticated/review'
+    | '/_authenticated/words'
     | '/_authenticated/wrong-notes'
     | '/auth/callback'
     | '/_authenticated/quiz/result'
@@ -271,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReviewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/words': {
+      id: '/_authenticated/words'
+      path: '/words'
+      fullPath: '/words'
+      preLoaderRoute: typeof AuthenticatedWordsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/wrong-notes': {
       id: '/_authenticated/wrong-notes'
       path: '/wrong-notes'
@@ -308,6 +327,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMoreRoute: typeof AuthenticatedMoreRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedReviewRoute: typeof AuthenticatedReviewRoute
+  AuthenticatedWordsRoute: typeof AuthenticatedWordsRoute
   AuthenticatedWrongNotesRoute: typeof AuthenticatedWrongNotesRoute
   AuthenticatedQuizResultRoute: typeof AuthenticatedQuizResultRoute
   AuthenticatedQuizIndexRoute: typeof AuthenticatedQuizIndexRoute
@@ -319,6 +339,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMoreRoute: AuthenticatedMoreRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedReviewRoute: AuthenticatedReviewRoute,
+  AuthenticatedWordsRoute: AuthenticatedWordsRoute,
   AuthenticatedWrongNotesRoute: AuthenticatedWrongNotesRoute,
   AuthenticatedQuizResultRoute: AuthenticatedQuizResultRoute,
   AuthenticatedQuizIndexRoute: AuthenticatedQuizIndexRoute,

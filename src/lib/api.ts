@@ -4,7 +4,7 @@
  */
 import { supabase } from "@/lib/supabase";
 import { todayKST } from "@/lib/date";
-import type { Pos, Profile, StudyMode, Word } from "@/types";
+import type { LearnedWord, Pos, Profile, StudyMode, Word } from "@/types";
 
 // ---------- 공통 ----------
 const WORD_COLUMNS = "id,headword,pos,meaning_ko,example_en,example_ko,tier,freq_rank";
@@ -194,17 +194,62 @@ export async function getWordsByIds(ids: string[]): Promise<Word[]> {
   return ids.map((id) => byId.get(id)).filter((w): w is Word => !!w);
 }
 
-/** 오늘(KST) 처음 학습한 단어. 홈의 "오늘 학습한 단어" 목록에 쓴다. */
+/** 오늘(KST) 처음 학습한 단어. 홈의 "오늘 학습한 단어" 목록과 단어 퀴즈에 쓴다. 오늘 학습량과 같이 현재 목표 점수로 학습한 단어만 센다. */
 export async function getTodayLearnedWords(): Promise<Word[]> {
   const user = await requireUser();
+  const { data: profile, error: profileError } = await supabase.from("profiles").select("target_score").eq("id", user.id).single();
+  if (profileError) throw toError(profileError);
+  if (profile.target_score == null) return [];
   const { data, error } = await supabase
     .from("user_word_progress")
     .select(`first_studied_at, words(${WORD_COLUMNS})`)
     .eq("user_id", user.id)
     .eq("first_studied_date", todayKST())
+    .eq("target_score", profile.target_score)
     .order("first_studied_at");
   if (error) throw toError(error);
   return (data as unknown as { words: WordRow }[]).map((r) => toWord(r.words));
+}
+
+interface LearnedRow {
+  first_studied_date: string;
+  status: "learning" | "mastered";
+  box: number;
+  next_review_at: string;
+  wrong_count: number;
+  correct_streak: number;
+  words: WordRow;
+}
+
+/**
+ * 지금까지 학습한 모든 단어(목표 점수와 무관, 최근 학습순). 단어장 화면의 검색·정렬·필터는 이 목록으로 화면에서 처리한다.
+ * PostgREST는 한 번에 최대 1000행이라, 그보다 많아져도 모두 가져오도록 나눠서 읽는다.
+ */
+export async function getLearnedWords(): Promise<LearnedWord[]> {
+  const user = await requireUser();
+  const PAGE = 1000;
+  const rows: LearnedRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("user_word_progress")
+      .select(`first_studied_date, status, box, next_review_at, wrong_count, correct_streak, words(${WORD_COLUMNS})`)
+      .eq("user_id", user.id)
+      .order("first_studied_at", { ascending: false })
+      .order("word_id")
+      .range(from, from + PAGE - 1);
+    if (error) throw toError(error);
+    rows.push(...(data as unknown as LearnedRow[]));
+    if (data.length < PAGE) break;
+  }
+  return rows.map((r) => ({
+    ...toWord(r.words),
+    firstStudiedDate: r.first_studied_date,
+    status: r.status,
+    box: r.box,
+    nextReviewAt: r.next_review_at,
+    wrongCount: r.wrong_count,
+    correctStreak: r.correct_streak,
+  }));
 }
 
 export async function recordFlashcard(wordId: string, known: boolean, mode: StudyMode): Promise<void> {

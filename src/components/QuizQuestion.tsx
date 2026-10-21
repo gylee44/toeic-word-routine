@@ -25,6 +25,19 @@ function HighlightedExample({ text, headword }: { text: string; headword: string
   );
 }
 
+/** 정답 해설 본문. 높이를 미리 잡아 두는 자리 표시에도 같은 내용을 쓴다. */
+function Feedback({ word, isCorrect }: { word: Word; isCorrect: boolean }) {
+  return (
+    <>
+      <p className={cn("text-sm font-bold lg:text-[15px]", isCorrect ? "text-success" : "text-destructive")}>
+        {isCorrect ? "정답이에요!" : `아쉬워요, 정답은 ‘${word.meaningKo}’이에요`}
+      </p>
+      <p className="mt-2 font-serif text-base font-semibold leading-normal lg:mt-2.5 lg:text-[19px]"><HighlightedExample text={word.exampleEn} headword={word.headword} /></p>
+      <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">{word.exampleKo}</p>
+    </>
+  );
+}
+
 export function QuizQuestion({ word, choices, selectedId, submitting, onSelect }: Props) {
   const answered = selectedId !== null;
   const isCorrect = selectedId === word.id;
@@ -73,16 +86,20 @@ export function QuizQuestion({ word, choices, selectedId, submitting, onSelect }
         })}
       </div>
 
-      <div aria-live="polite" className={cn("mt-4 lg:mt-5", answered && "rounded-[14px] border bg-card px-4 py-3.5 lg:border-0 lg:bg-background lg:px-5 lg:py-[18px]")}>
-        {answered && (
-          <>
-            <p className={cn("text-sm font-bold lg:text-[15px]", isCorrect ? "text-success" : "text-destructive")}>
-              {isCorrect ? "정답이에요!" : `아쉬워요, 정답은 ‘${word.meaningKo}’이에요`}
-            </p>
-            <p className="mt-2 font-serif text-base font-semibold leading-normal lg:mt-2.5 lg:text-[19px]"><HighlightedExample text={word.exampleEn} headword={word.headword} /></p>
-            <p className="mt-1 text-[13px] text-muted-foreground lg:text-sm">{word.exampleKo}</p>
-          </>
-        )}
+      {/* 해설이 나와도 아래 버튼이 밀리지 않도록, 같은 내용을 보이지 않게 깔아 높이를 미리 잡는다 (오답 문구가 더 길어서 그쪽 기준) */}
+      <div className="mt-4 grid lg:mt-5">
+        <div aria-hidden className="invisible col-start-1 row-start-1 rounded-[14px] border border-transparent px-4 py-3.5 lg:border-0 lg:px-5 lg:py-[18px]">
+          <Feedback word={word} isCorrect={false} />
+        </div>
+        <div
+          aria-live="polite"
+          className={cn(
+            "col-start-1 row-start-1 rounded-[14px] border border-transparent px-4 py-3.5 lg:border-0 lg:px-5 lg:py-[18px]",
+            answered && "border-border bg-card lg:bg-background",
+          )}
+        >
+          {answered && <Feedback word={word} isCorrect={isCorrect} />}
+        </div>
       </div>
     </div>
   );

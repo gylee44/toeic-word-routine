@@ -72,6 +72,8 @@
 
 :root {
   --radius: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-card-lg: 1.25rem;
   --font-sans: "Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif;
   /* 종이색 바탕 + 플럼 포인트 (UI 개선 시안 기준) */
   --background: oklch(0.985 0.004 90);
@@ -126,6 +128,15 @@
   }
 }
 
+/* 홈 등에서 쓰는 카드 표면 (반경은 데스크톱에서 한 단계 커진다) */
+@utility card-surface {
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  border-radius: var(--radius-card);
+  @media (min-width: 1024px) {
+    border-radius: var(--radius-card-lg);
+  }
+}
 @utility perspective {
   perspective: 1200px;
 }

@@ -33,7 +33,12 @@ export function TickBar({ value, max, segments = 10, thin, className, label }: {
       {Array.from({ length: segments }, (_, i) => (
         <span
           key={i}
-          className={cn(thin ? "h-[5px] rounded-sm lg:h-1.5" : "h-2 rounded-[3px] lg:h-2.5 lg:rounded-[4px]", i < filled ? "bg-primary" : "bg-border")}
+          className={cn(
+            "transition-colors duration-300 motion-reduce:transition-none",
+            thin ? "h-[5px] rounded-sm lg:h-1.5" : "h-2 rounded-[3px] lg:h-2.5 lg:rounded-[4px]",
+            i < filled ? "bg-primary" : "bg-border",
+          )}
+          style={{ transitionDelay: `${i * 40}ms` }}
         />
       ))}
     </div>

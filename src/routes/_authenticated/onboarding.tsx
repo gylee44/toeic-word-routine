@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/components/useErrorToast";
 import { saveOnboarding, signOut } from "@/lib/api";
-import { DAILY_GOALS, TARGET_SCORES } from "@/lib/constants";
+import { DAILY_GOALS, TARGET_SCORES, formatTargetScore } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -61,7 +61,7 @@ export function GoalPicker({ target, goal, setTarget, setGoal, variant = "cards"
           {target && (
             <>
               <Check className="h-4 w-4" aria-hidden />
-              {target === 900 ? "900+" : target === 500 ? "500 이하" : target}점 목표에 맞는 단어로 {compact ? "학습해요" : "시작해요"}
+              {formatTargetScore(target)}점 목표에 맞는 단어로 {compact ? "학습해요" : "시작해요"}
             </>
           )}
         </p>

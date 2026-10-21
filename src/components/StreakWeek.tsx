@@ -12,12 +12,13 @@ export function StreakWeek({ days, studiedDates }: { days: number; studiedDates:
   const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const studied = new Set(studiedDates);
   return (
-    <section className="rounded-[18px] border bg-card px-[18px] pb-[18px] pt-4 lg:rounded-[20px] lg:px-6 lg:pb-6 lg:pt-[22px]">
+    // 보조 정보라 흰 바탕 없이 테두리만 둔다 (학습·복습 카드보다 시각 무게를 낮춘다)
+    <section className="card-surface bg-transparent px-5 pb-5 pt-4 lg:px-6 lg:pb-6 lg:pt-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-[15px] font-bold lg:text-base">{days > 0 ? `${days}일 연속 학습 중` : "오늘 학습을 시작해 보세요"}</h2>
-        <span className="text-[13px] text-muted-foreground">이번 주</span>
+        <h2 className="text-[15px] font-bold lg:text-base">{days > 0 ? `${days}일 연속 학습 중` : "이번 주 학습 기록"}</h2>
+        {days > 0 && <span className="text-[13px] text-muted-foreground">이번 주</span>}
       </div>
-      <ul aria-label="이번 주 학습 기록" className="mt-3.5 grid grid-cols-7 text-center lg:mt-[18px]">
+      <ul aria-label={`이번 주 학습 기록, ${week.filter((d) => studied.has(d)).length}일 학습`} className="mt-3.5 grid grid-cols-7 text-center lg:mt-[18px]">
         {week.map((date) => {
           const isToday = date === today;
           const isFuture = date > today;

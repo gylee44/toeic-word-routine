@@ -4,7 +4,7 @@ import { Container } from "@/components/Container";
 import { protectedRoute } from "@/components/ProtectedRoute";
 import { SiteHeader } from "@/components/SiteHeader";
 
-const TAB_PATHS = ["/home", "/wrong-notes", "/more"];
+const TAB_PATHS = ["/home", "/words", "/wrong-notes", "/more"];
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
