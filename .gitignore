@@ -40,6 +40,15 @@ dist-ssr
 supabase/.temp
 supabase/.branches
 supabase/.env
+supabase/.env.*
+
+# 키·인증서·서비스 계정 파일
+*.pem
+*.key
+*.p12
+service-account*.json
+credentials*.json
+.secrets/
 
 # Seed scripts: service role 키 등 로컬 전용 파일
 seed/.env
