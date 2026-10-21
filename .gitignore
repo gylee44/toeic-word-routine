@@ -57,3 +57,14 @@ Desktop.ini
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# MCP 연결 설정 (Supabase 프로젝트 ref 포함, 로컬 전용)
+.mcp.json
+
+# 설치형 에이전트 스킬 (npx skills add로 재설치 가능)
+.agents/
+.claude/skills/
+skills-lock.json
+
+# 단어 원본 파일 (NGSL/TSL, 재다운로드 가능, 라이선스 조건 확인 전 재배포 금지)
+seed/raw/
