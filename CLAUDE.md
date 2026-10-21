@@ -86,22 +86,23 @@ seed/                       단어 CSV, 시드 스크립트, 데모 계정 시�
 ### 데이터 접근
 - UI 컴포넌트는 Supabase를 직접 호출하지 않는다. **`src/lib/api.ts`의 함수만 사용**한다.
 - `api.ts` 함수 이름과 반환 형태는 유지하고, 내부 구현만 mock → Supabase로 교체한다.
-- RPC 대응: `getTodayWords` → `get_today_words`, `recordFlashcard` → `record_flashcard`, `getQuizChoices` → `get_quiz_choices`, `recordQuizAnswer` → `record_quiz_answer`, `getHomeSummary` → `get_home_summary`
-- `getHomeSummary`는 최근 7일 학습 날짜 `studiedDates`도 반환한다(홈의 요일별 기록용). `getTodayLearnedWords`(홈의 오늘 학습한 단어 목록용)는 대응 RPC가 아직 없다.
+- RPC 대응: `saveOnboarding` → `save_onboarding`, `getTodayWords` → `get_today_words`, `recordFlashcard` → `record_flashcard`, `getQuizChoices` → `get_quiz_choices`, `recordQuizAnswer` → `record_quiz_answer`, `getHomeSummary` → `get_home_summary`, (P1) `getDays` → `get_day_summaries`
+- `getHomeSummary`는 최근 7일 학습 날짜 `studiedDates`도 반환한다(홈의 요일별 기록용). `getTodayLearnedWords` 등 나머지 조회는 RLS 테이블 직접 조회다(PRD 11.5).
 
 ### 학습 규칙 (상세는 PRD 9장)
-- SRS 간격: box 0~4 → `[0, 1, 3, 7, 14]`일. 값은 `constants.ts`에서만 관리한다.
-- 퀴즈 정답 box+1 (최대 4, box 4 정답 시 mastered) / 오답 box 0
-- 플래시카드: 알아요 → box 1, +1일 / 모르겠어요 → box 0, 당일
-- 오답노트: `wrong_count > 0 AND correct_streak < 2`
-- 오늘 학습량: `first_studied_at`이 오늘(KST)인 단어 수. 복습은 제외
+- SRS 간격: box 0~4 → `[0, 1, 3, 7, 14]`일. 서버 SQL이 기준이고, `constants.ts`는 화면 표시용으로 같은 값을 유지한다.
+- 퀴즈 정답 box+1 (최대 4, box 4 정답 시 mastered) / 오답 box 0. 퀴즈는 진행 정보가 있는 단어만 대상
+- 플래시카드(첫 학습만): 알아요 → box 1, +1일 / 모르겠어요 → box 0, 당일. 이미 학습한 단어는 box를 바꾸지 않고 기록만 남김
+- 복습 대상: `next_review_at <= 오늘` (mastered 포함)
+- 오답노트: `wrong_count > 0 AND correct_streak < 2`, `last_wrong_at` 내림차순
+- 오늘 학습량: `first_studied_date`가 오늘(KST)인 단어 수. 복습은 제외
 - 연속 학습일: `study_events.study_date` 연속 일수
 - 목표 점수 → 시작 구간: `START_TIER_BY_TARGET` 상수 사용 (확정 전: 목표 점수별 단어 세트로 바뀔 수 있음, PRD FR-03 참고)
 - 모든 날짜는 KST. DB에서는 `(now() at time zone 'Asia/Seoul')::date`
 
 ### 보안
 - 모든 테이블에 RLS 적용. `words`는 authenticated 읽기 전용
-- `user_word_progress`, `study_events` 쓰기는 security definer RPC로만. RPC는 `auth.uid()` 기준이며 사용자 ID를 인자로 받지 않는다.
+- `profiles`, `user_word_progress`, `study_events` 쓰기는 트리거와 security definer RPC로만 한다(테이블 쓰기 권한 회수). RPC는 `auth.uid()` 기준이며 사용자 ID를 인자로 받지 않고, `set search_path = public`을 지정한다.
 - 채점, SRS 갱신, 퀴즈 보기 생성은 서버(RPC)에서 처리한다.
 - 프론트엔드 환경변수는 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`만 사용한다.
 - service role 키는 시드 스크립트용 로컬 `.env`에만 둔다. 코드, 저장소, 로그에 출력하지 않는다.

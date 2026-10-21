@@ -1,9 +1,20 @@
 # PRD: 토익 단어 · LC 학습 웹서비스 (가칭)
 
-> 상태: 초안 v0.3 (전체 로그인 필수 전환, 이번 주 배포 일정 반영)
+> 상태: 초안 v0.4 (데이터 요구사항 보안·무결성 보완)
 > 개발 순서: **1단계 단어 학습(MVP)** → 2단계 LC(듣기) 추가 → 3단계 통계·점수 목표 관리
 > 콘텐츠 원칙: 토익 공식·출판사 기출은 사용하지 않고, 개방 라이선스 단어 목록 + 직접 제작한 오리지널 콘텐츠만 사용한다.
 > 목표 일정: 10/23(금) Demo Day까지 MVP 배포 완료
+
+### v0.4 변경 요약
+
+| 구분 | 변경 내용 |
+|---|---|
+| 보안 | profiles 직접 수정 금지, `save_onboarding` RPC로만 저장(role 권한 상승 차단). RPC 공통 규칙(`search_path` 고정, anon 실행 권한 회수, 인자 검증) 추가 |
+| 무결성 | CHECK·UNIQUE·NOT NULL 제약, FK 삭제 동작(사용자 cascade, 단어 restrict), 인덱스 명시. 재시드 시 단어 id 유지 |
+| 스키마 | `user_word_progress`에 `first_studied_date`(생성 컬럼), `last_wrong_at` 추가. 기본키를 `(user_id, word_id)` 복합키로 변경하고 `id` 제거. `mastered`는 box 4에서만 가능하다는 CHECK 추가 |
+| ERD | 11.7에 ERD 다이어그램, `Profiles`-`Words` M:N 관계 설명, LC 관계 보강. LC 보기의 정답 노출 방지 규칙 추가 |
+| 학습 규칙 | 플래시카드는 첫 학습 시에만 box를 정한다. 퀴즈는 진행 정보가 있는 단어만 채점한다. 진행 정보 상태 전이 표 추가. 연속 학습일 계산 기준 명시 |
+| API | `get_today_words` 개수를 서버가 계산(`p_extra`). `get_quiz_choices` 반환 형태, `get_home_summary`의 `studied_dates`, 직접 조회 목록, (P1) `get_day_summaries` 추가 |
 
 ### v0.3 변경 요약
 
@@ -467,7 +478,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 
 - **오늘 학습한 단어 수**는 오늘(KST) 처음 학습한 새 단어 수(`first_studied_at`이 오늘인 단어 수)로 계산하며, 하루 목표 대비 진행률로 표시한다. 복습한 단어는 포함하지 않는다.
 - 오늘 복습 대기 단어 수를 표시해야 한다.
-- (P1) 연속 학습일을 표시해야 한다. `study_events`에 하루 1건 이상의 기록(플래시카드 응답 또는 퀴즈 응답)이 있으면 학습한 날로 계산한다.
+- (P1) 연속 학습일을 표시해야 한다. `study_events`에 하루 1건 이상의 기록(플래시카드 응답 또는 퀴즈 응답)이 있으면 학습한 날로 계산한다. 오늘 기록이 아직 없으면 어제부터 거슬러 세어, 오늘 학습 전에 연속 기록이 0으로 보이지 않게 한다.
 - 하루 기준은 한국 시간(KST, Asia/Seoul)을 따른다.
 
 ### FR-05. 단어 학습(플래시카드)
@@ -481,6 +492,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
   - 알아요 → 상태 `learning`, 복습 1단계, 다음 복습일 +1일
   - 모르겠어요 → 상태 `learning`, 복습 0단계, 다음 복습일 당일
   - 응답은 `study_events`에 기록한다.
+  - 이미 진행 정보가 있는 단어(복습·오답노트·반복 학습)는 복습 단계와 다음 복습일을 바꾸지 않고 응답 기록만 남긴다. 복습 단계는 퀴즈로만 바뀐다(FR-06).
 - 학습 도중 나가더라도 이미 응답한 카드의 기록은 유지되어야 한다.
 - (P1) Day 목록에서 이미 학습한 Day를 다시 열어 반복 학습할 수 있어야 한다. 반복 학습 시 플래시카드 응답은 복습 단계를 바꾸지 않고 기록만 남긴다.
 
@@ -492,11 +504,12 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - 4단계에서 정답 시 상태를 `mastered`로 바꾸고 이후에도 14일 간격으로 복습 대상에 포함한다. `mastered` 단어를 틀리면 `learning`으로 돌아간다.
 - 오늘 복습 대상은 `next_review_at`이 오늘(KST) 이전이거나 같은 단어이다.
 - 복습 간격 값은 코드에 하드코딩하지 않고 설정 가능한 상수로 관리한다.
-- 복습 단계 갱신은 서버 함수(`record_quiz_answer`)에서만 수행한다.
+- 복습 단계 갱신은 서버 함수(`record_quiz_answer`)에서만 수행한다. 단, 처음 학습하는 단어의 초기 단계는 `record_flashcard`가 정한다(FR-05).
 
 ### FR-07. 퀴즈
 
 - 퀴즈는 영어 단어를 보고 한국어 뜻을 고르는 4지선다로 구성한다.
+- 퀴즈 대상은 학습 진행 정보가 있는(플래시카드로 한 번 이상 학습한) 단어로 한정한다.
 - 보기는 서버 함수(`get_quiz_choices`)로 생성한다. 오답 보기는 같은 품사의 다른 단어 뜻에서 무작위로 선택하며, 정답과 뜻이 중복되지 않아야 한다. 같은 품사 단어가 부족하면 다른 품사 단어로 채운다.
 - 보기 순서는 매번 무작위로 섞는다.
 - 정답/오답은 선택 즉시 표시하고, 응답 결과는 `study_events`에 저장한다.
@@ -623,6 +636,12 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 
 데이터는 Supabase PostgreSQL에 저장하며, 사용자 인증은 Supabase Auth를 사용한다. 스키마, RLS, 서버 함수는 `supabase/migrations`의 마이그레이션 파일로 관리한다.
 
+**공통 규칙**
+- 아래 표의 모든 컬럼은 따로 적지 않으면 `NOT NULL`이다. NULL을 허용하는 컬럼은 설명에 표시한다.
+- 허용 값이 정해진 컬럼(역할, 상태, 점수, 모드 등)은 CHECK 제약으로 DB에서 강제한다.
+- 날짜(DATE) 컬럼은 서버에서 `(now() at time zone 'Asia/Seoul')::date`로 계산한다. 클라이언트가 보낸 날짜를 저장하지 않는다.
+- 학습 규칙 값(복습 간격, 시작 구간 매핑, 오답노트 해제 기준)은 서버 SQL이 기준이다. `src/lib/constants.ts`는 화면 표시용으로 같은 값을 유지한다.
+
 ### 11.1 Profiles (사용자 프로필)
 
 | 필드명 | 타입 | 설명 |
@@ -631,17 +650,20 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 | name | TEXT | 사용자 이름 |
 | role | TEXT | user / admin (기본값 user) |
 | target_score | INTEGER | 목표 점수 (온보딩 전 NULL) |
-| start_tier | INTEGER | 학습 시작 구간 (목표 점수로 결정) |
-| daily_goal | INTEGER | 하루 학습 단어 수 (10/20/30) |
-| onboarded_at | TIMESTAMPTZ | 온보딩 완료 시각 |
-| created_at | TIMESTAMPTZ | 계정 생성일 |
+| start_tier | INTEGER | 학습 시작 구간 (서버가 목표 점수로 계산, 온보딩 전 NULL) |
+| daily_goal | INTEGER | 하루 학습 단어 수 (10/20/30, 온보딩 전 NULL) |
+| onboarded_at | TIMESTAMPTZ | 온보딩 완료 시각 (온보딩 전 NULL) |
+| created_at | TIMESTAMPTZ | 계정 생성일 (기본값 `now()`) |
 
 **규칙**
-- `id`는 `auth.users.id`를 참조하며, 가입 시 트리거(`handle_new_user`)로 자동 생성한다.
+- `id`는 `auth.users.id`를 참조하며(`on delete cascade`), 가입 시 트리거(`handle_new_user`)로 자동 생성한다.
+- 트리거는 `name`을 user metadata의 이름 → 소셜 제공자 이름 → 이메일 앞부분 순서로 채운다(`coalesce`). 트리거가 실패하면 가입 자체가 실패하므로, 값이 비어도 예외가 나지 않게 하고 `on conflict (id) do nothing`을 둔다.
 - 이메일과 비밀번호는 Supabase Auth에서 관리한다.
-- 본인 프로필만 조회·수정할 수 있다. 단, `role`은 일반 사용자가 변경할 수 없어야 한다.
-- `daily_goal`은 허용된 값(10, 20, 30)만 저장한다.
-- `target_score`, `start_tier`는 500 / 600 / 700 / 800 / 900 중 하나만 저장한다.
+- 본인 프로필만 조회할 수 있다.
+- **클라이언트는 profiles를 직접 수정하지 않는다.** RLS update 정책만으로는 컬럼 단위 제한이 되지 않아 `role`을 바꿀 수 있기 때문이다. 테이블의 insert·update·delete 권한을 `authenticated`, `anon`에서 회수하고, 온보딩·설정 변경은 `save_onboarding` RPC로만 한다.
+- `start_tier`와 `onboarded_at`은 `save_onboarding`이 서버에서 계산해 저장한다. 클라이언트가 보낸 시작 구간은 받지 않는다.
+- CHECK 제약: `role in ('user', 'admin')`, `daily_goal in (10, 20, 30)`, `target_score`·`start_tier in (500, 600, 700, 800, 900)`.
+- `admin` 역할 부여는 SQL(service role)로만 한다. MVP에는 관리자 기능이 없으므로 `role`을 참조하는 RLS 정책을 두지 않는다.
 
 ### 11.2 Words (단어)
 
@@ -657,36 +679,58 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 | day_no | INTEGER | 소속 Day 번호 (전체 구간에서 연속 번호) |
 | freq_rank | INTEGER | 빈출 순위 (출처 목록 기준) |
 | source | TEXT | 단어 목록 출처 |
-| created_at | TIMESTAMPTZ | 등록일 |
+| created_at | TIMESTAMPTZ | 등록일 (기본값 `now()`) |
 
 **규칙**
-- 같은 단어와 품사 조합은 중복 등록할 수 없다.
+- 같은 단어와 품사 조합은 중복 등록할 수 없다: `unique (headword, pos)`. `headword`는 앞뒤 공백을 제거하고 소문자로 저장한다.
+- CHECK 제약: `tier in (500, 600, 700, 800, 900)`, `day_no > 0`, `freq_rank > 0`.
+- 한 Day의 단어는 모두 같은 tier에 속한다. 시드 스크립트가 적재 전에 검증한다.
 - 뜻과 예문은 직접 작성하거나 AI로 초안을 만든 뒤 사람이 검수한 내용만 반영한다.
-- 로그인한 사용자만 읽을 수 있고, 쓰기는 시드 스크립트(서버 측) 또는 관리자만 가능하다.
+- 로그인한 사용자(`authenticated`)만 읽을 수 있다. insert·update·delete 권한은 `authenticated`, `anon`에서 회수하고, 쓰기는 service role을 쓰는 시드 스크립트로만 한다.
+- **재시드 시 단어 id를 유지한다.** 시드 스크립트는 `on conflict (headword, pos) do update`로 내용만 갱신한다. id가 바뀌면 사용자 학습 기록과의 연결이 끊긴다.
+- 학습 기록이 있는 단어는 삭제할 수 없다(진행 정보·이벤트의 FK가 `on delete restrict`).
+- 인덱스: `(tier, day_no, freq_rank)` (오늘의 학습 정렬), `(pos)` (퀴즈 오답 보기 추출).
 - 데모 기준 각 tier에 최소 1개 Day(20개)를 적재해 모든 목표 점수에서 학습을 시작할 수 있게 한다.
 
 ### 11.3 User Word Progress (단어별 학습 진행)
 
 | 필드명 | 타입 | 설명 |
 |---|---|---|
-| id | UUID (PK) | 진행 정보 ID |
-| user_id | UUID (FK) | 사용자 ID |
-| word_id | UUID (FK) | 단어 ID |
+| user_id | UUID (PK, FK) | 사용자 ID |
+| word_id | UUID (PK, FK) | 단어 ID |
 | status | TEXT | learning / mastered |
 | box | INTEGER | 복습 단계 (0~4) |
 | next_review_at | DATE | 다음 복습일 (KST 기준 날짜) |
 | correct_count | INTEGER | 누적 정답 수 |
 | wrong_count | INTEGER | 누적 오답 수 |
 | correct_streak | INTEGER | 연속 정답 수 |
-| first_studied_at | TIMESTAMPTZ | 처음 학습한 시각 (오늘 학습량 집계용) |
+| first_studied_at | TIMESTAMPTZ | 처음 학습한 시각 |
+| first_studied_date | DATE | 처음 학습한 날짜 (KST, `first_studied_at`에서 계산되는 생성 컬럼, 오늘 학습량 집계용) |
 | last_studied_at | TIMESTAMPTZ | 마지막 학습 시각 |
+| last_wrong_at | TIMESTAMPTZ | 마지막으로 틀린 시각 (오답노트 정렬용, 틀린 적 없으면 NULL) |
 
 **규칙**
-- 행이 없는 단어는 미학습(new) 단어로 본다.
-- (user_id, word_id) 조합은 유일해야 한다.
-- `box`는 0 이상 4 이하이다.
-- 본인 데이터만 조회할 수 있다. 추가·수정은 서버 함수(`record_flashcard`, `record_quiz_answer`)로만 한다.
-- 오답노트 대상은 `wrong_count > 0` 이면서 `correct_streak < 2`인 단어로 정의한다.
+- 행이 없는 단어는 미학습(new) 단어로 본다. 행은 `record_flashcard`의 첫 응답에서만 생성된다.
+- 기본키는 `(user_id, word_id)` 복합키이다. 별도의 `id` 컬럼은 두지 않는다. RPC는 이 키를 기준으로 upsert한다.
+- FK: `user_id → profiles(id) on delete cascade`, `word_id → words(id) on delete restrict`.
+- CHECK 제약: `box between 0 and 4`, `status in ('learning', 'mastered')`, 카운트 컬럼 `>= 0`, `status <> 'mastered' or box = 4`(mastered는 box 4에서만 가능). 카운트 기본값은 0이다.
+- `first_studied_date`는 `first_studied_at`을 KST로 변환한 생성 컬럼(`generated always as ((first_studied_at at time zone 'Asia/Seoul')::date) stored`)이다. 두 값이 어긋나지 않고, 날짜 컬럼에 일반 인덱스를 쓸 수 있다. RPC는 `first_studied_at`만 기록하고 `first_studied_date`는 직접 쓰지 않는다. 마이그레이션 적용 시 이 식이 허용되는지 확인한다.
+- 본인 데이터만 조회할 수 있다. insert·update·delete 권한은 회수하고, 쓰기는 서버 함수(`record_flashcard`, `record_quiz_answer`)로만 한다.
+- 복습 대상은 `next_review_at <= 오늘(KST)`인 단어이며, `mastered`도 포함한다(FR-06).
+- 오답노트 대상은 `wrong_count > 0` 이면서 `correct_streak < 2`인 단어로 정의하고, `last_wrong_at` 내림차순으로 정렬한다.
+- 인덱스: `(user_id, next_review_at)` (복습), `(user_id, first_studied_date)` (오늘 학습량), `(user_id) where wrong_count > 0` (오답노트).
+
+**상태 전이** (간격은 FR-06의 `[0, 1, 3, 7, 14]`일)
+
+| 이벤트 | box | status | next_review_at | 그 밖의 변경 |
+|---|---|---|---|---|
+| 플래시카드 첫 응답 · 알아요 | 1 | learning | 오늘 + 1 | 행 생성, `first_studied_at` 기록 |
+| 플래시카드 첫 응답 · 모르겠어요 | 0 | learning | 오늘 | 행 생성, `first_studied_at` 기록 |
+| 플래시카드 응답 (행이 이미 있음) | 유지 | 유지 | 유지 | `last_studied_at`만 갱신 |
+| 퀴즈 정답 | `min(box + 1, 4)` | 기존 box가 4이면 mastered, 아니면 유지 | 오늘 + 갱신된 box의 간격 | `correct_count + 1`, `correct_streak + 1` |
+| 퀴즈 오답 | 0 | learning | 오늘 | `wrong_count + 1`, `correct_streak = 0`, `last_wrong_at = now()` |
+
+모든 응답은 `last_studied_at`을 갱신한다. 행이 없는 단어의 퀴즈 응답은 오류로 처리한다(FR-07).
 
 ### 11.4 Study Events (학습 이벤트 기록)
 
@@ -701,25 +745,40 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 | mode | TEXT | learn / review / wrong_note / repeat |
 | result | TEXT | known / unknown (flashcard), correct / wrong (quiz) |
 | study_date | DATE | 학습 날짜 (KST 기준, 서버에서 계산) |
-| created_at | TIMESTAMPTZ | 기록 시각 |
+| created_at | TIMESTAMPTZ | 기록 시각 (기본값 `now()`) |
 
 **규칙**
-- 본인 기록만 조회할 수 있으며, 추가는 서버 함수로만 하고 수정·삭제는 허용하지 않는다.
-- 연속 학습일은 `study_date`의 연속 일수로 계산한다.
+- 본인 기록만 조회할 수 있다. insert·update·delete 권한을 회수하고, 추가는 서버 함수로만 한다. 수정·삭제 정책은 만들지 않는다.
+- FK: `user_id → profiles(id) on delete cascade`, `word_id → words(id) on delete restrict`.
+- CHECK 제약: `activity in ('flashcard', 'quiz')`, `mode in ('learn', 'review', 'wrong_note', 'repeat')`, 그리고 activity별 result 조합(`flashcard`는 `known`/`unknown`, `quiz`는 `correct`/`wrong`).
+- 연속 학습일은 `study_date`의 연속 일수로 계산한다. 오늘 기록이 없으면 어제부터 센다(FR-04).
+- 인덱스: `(user_id, study_date)` (연속 학습일, 최근 7일), `(user_id, activity, word_id)` (P1 Day별 정답률).
 
 ### 11.5 Server Functions (RPC)
 
-| 함수 | 역할 |
-|---|---|
-| `handle_new_user` (트리거) | 가입 시 profiles 행 생성 |
-| `get_today_words(limit)` | FR-05 규칙에 따라 오늘의 학습 단어 반환 |
-| `record_flashcard(word_id, known, mode)` | 플래시카드 응답 저장, 진행 정보·이벤트 기록 |
-| `get_quiz_choices(word_id)` | 정답 1개 + 오답 3개 보기 생성 |
-| `record_quiz_answer(word_id, choice_word_id, mode)` | 서버에서 채점, SRS 갱신, 이벤트 기록 후 정답 여부 반환 |
-| `get_home_summary()` | 오늘 학습량, 복습 대기 수, 연속 학습일 반환 |
+| 함수 | 역할 | 대응 `api.ts` |
+|---|---|---|
+| `handle_new_user` (트리거) | 가입 시 profiles 행 생성 | - |
+| `save_onboarding(p_target_score, p_daily_goal)` | 값 검증 후 `target_score`, `daily_goal`, `start_tier`(서버 계산), `onboarded_at` 저장. P1 설정 변경에도 사용 | `saveOnboarding` |
+| `get_today_words(p_extra default false)` | FR-05 규칙에 따라 오늘의 학습 단어 반환. 개수는 서버가 계산한다(기본: 하루 목표 − 오늘 학습량, `p_extra`: 하루 목표만큼). 정렬은 시작 구간 이상 tier 오름차순 → 그보다 낮은 tier → `day_no` → `freq_rank` | `getTodayWords` |
+| `record_flashcard(p_word_id, p_known, p_mode)` | 플래시카드 응답 저장, 진행 정보(11.3 상태 전이)·이벤트 기록 | `recordFlashcard` |
+| `get_quiz_choices(p_word_id)` | 정답 1개 + 오답 3개를 섞어 `(id, meaning_ko)` 목록으로 반환. 정답 표시는 포함하지 않는다 | `getQuizChoices` |
+| `record_quiz_answer(p_word_id, p_choice_word_id, p_mode)` | 서버에서 채점, SRS 갱신, 이벤트 기록 후 정답 여부 반환 | `recordQuizAnswer` |
+| `get_home_summary()` | 오늘 학습량, 하루 목표, 복습 대기 수, 연속 학습일, 최근 7일 학습 날짜(`studied_dates`) 반환 | `getHomeSummary` |
+| (P1) `get_day_summaries()` | Day별 단어 수, 학습한 단어 수, 퀴즈 정답률 반환 | `getDays` |
 
-- 모든 함수는 `auth.uid()` 기준으로 동작하며, 다른 사용자 ID를 인자로 받지 않는다.
+다음 함수는 RPC 없이 RLS가 적용된 테이블을 직접 조회한다: `getTodayLearnedWords`(`first_studied_date = 오늘`), `getReviewWords`, `getWrongNotes`, `getDayWords`, `getWordsByIds`, `getProfile`.
+
+**공통 규칙**
+- 모든 함수는 `auth.uid()` 기준으로 동작하며, 다른 사용자 ID를 인자로 받지 않는다. `auth.uid()`가 NULL이면 예외를 낸다.
+- `security definer` 함수는 `set search_path = public`을 지정한다. 지정하지 않으면 다른 스키마의 같은 이름 객체가 대신 실행될 수 있다.
+- 실행 권한은 `public`, `anon`에서 회수하고 `authenticated`에만 부여한다.
+- 인자를 검증한다: 존재하지 않는 단어, 허용되지 않은 `mode`·점수·목표 값, NULL 인자는 예외로 거부한다. 프론트엔드는 FR-11 오류 처리로 안내한다.
+- 진행 정보 갱신과 이벤트 기록은 한 함수(한 트랜잭션) 안에서 함께 처리한다. 진행 정보는 `select ... for update`로 잠근 뒤 갱신해 동시 요청을 직렬화한다.
 - 날짜 계산은 `(now() at time zone 'Asia/Seoul')::date`를 기준으로 통일한다.
+
+**알려진 제한 (MVP 허용)**
+- 보기에 단어 id가 포함되므로 클라이언트가 정답을 알아낼 수 있고, 같은 단어로 `record_quiz_answer`를 반복 호출하면 box를 올릴 수 있다. 영향이 본인 학습 기록에만 미치므로 MVP에서는 허용한다. 중복 제출은 UI에서 막는다(FR-07).
 
 ### 11.6 Later: LC 데이터 (2단계)
 
@@ -748,22 +807,43 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 
 **lc_attempts**: user_id, question_id, selected_choice_id, is_correct, answered_at
 
+**규칙 (구현 시 반영)**
+- `(question_id, label)`은 유일해야 한다.
+- `lc_choices.is_correct`는 클라이언트가 직접 읽을 수 없게 한다. 단어 퀴즈와 같이 채점은 서버 함수에서 처리하고, 보기 조회는 정답 여부를 제외하고 반환한다.
+
 ### 11.7 Data Relationship
 
-- `Profiles 1 : N User Word Progress`
-- `Words 1 : N User Word Progress`
-- `Profiles 1 : N Study Events`
-- `Words 1 : N Study Events`
+```mermaid
+erDiagram
+    AUTH_USERS ||--o| PROFILES : "가입 시 트리거로 생성"
+    PROFILES ||--o{ USER_WORD_PROGRESS : "학습 진행"
+    WORDS ||--o{ USER_WORD_PROGRESS : "단어별 진행"
+    PROFILES ||--o{ STUDY_EVENTS : "학습 기록"
+    WORDS ||--o{ STUDY_EVENTS : "단어별 기록"
+    LC_QUESTIONS ||--|{ LC_CHOICES : "보기"
+    PROFILES ||--o{ LC_ATTEMPTS : "풀이 기록"
+    LC_QUESTIONS ||--o{ LC_ATTEMPTS : "문제별 기록"
+    LC_CHOICES ||--o{ LC_ATTEMPTS : "선택한 보기"
+```
+
+- `auth.users 1 : 1 Profiles` (사용자 삭제 시 profiles와 하위 학습 데이터 cascade 삭제)
+- `Profiles N : M Words`: 연결 테이블 `User Word Progress`가 사용자별 단어 학습 상태(단어당 1행)를 저장한다.
+- `Profiles 1 : N Study Events`, `Words 1 : N Study Events`: `Study Events`는 응답마다 쌓이는 로그이며 같은 사용자·단어의 기록이 여러 건 존재한다.
+- `Study Events`와 `User Word Progress`는 FK로 직접 연결하지 않는다. 학습 기록이 있는 단어에만 응답이 가능하다는 규칙은 서버 함수가 보장한다.
+- Day는 별도 테이블 없이 `words.day_no`로 구분한다(단어 세트 구조는 FR-03의 확정 전 항목 참고).
 - (Later) `LC Questions 1 : N LC Choices`
-- (Later) `Profiles 1 : N LC Attempts`
+- (Later) `Profiles 1 : N LC Attempts`, `LC Questions 1 : N LC Attempts`, `LC Choices 1 : N LC Attempts`
 
 ### 11.8 Data Security
 
 - 모든 사용자 데이터는 Supabase Auth 사용자 ID 기준으로 연결한다.
 - 모든 테이블에 Row Level Security(RLS)를 적용한다.
 - `user_word_progress`, `study_events`는 본인 조회만 허용하고, 쓰기는 서버 함수(security definer)로만 한다.
+- `profiles`는 본인 조회만 허용하고, 쓰기는 트리거와 `save_onboarding`으로만 한다.
 - `words`는 로그인 사용자(authenticated) 읽기 전용이다. 비로그인(anon)은 접근할 수 없다.
-- 관리자 역할 부여는 신뢰할 수 있는 서버 측 절차로만 수행한다.
+- RLS 정책과 별도로 테이블 권한도 회수한다(`revoke insert, update, delete ... from authenticated, anon`, `anon`은 select도 회수). Supabase는 기본으로 public 스키마 테이블에 권한을 부여하므로, 정책을 잘못 만들었을 때를 대비한다.
+- 관리자 역할 부여는 신뢰할 수 있는 서버 측 절차(service role SQL)로만 수행한다.
+- 검증: 다른 사용자 세션으로 `user_word_progress`, `study_events`, `profiles`를 조회하면 0행이어야 하고, `profiles.role` 직접 수정은 권한 오류가 나야 한다(AC-07).
 
 ### 11.9 Content Sources & License (콘텐츠 소싱 원칙)
 
