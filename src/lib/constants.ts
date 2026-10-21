@@ -9,5 +9,7 @@ export const TARGET_SCORES = [
   { value: 800, label: "800" },
   { value: 900, label: "900+" },
 ];
+/** 목표 점수를 화면 표기로 바꾼다 (500 → "500 이하", 900 → "900+") */
+export const formatTargetScore = (score: number) => TARGET_SCORES.find((t) => t.value === score)?.label ?? String(score);
 export const TIERS = [500, 600, 700, 800, 900];
 export const POS_KO: Record<string, string> = { noun: "명사", verb: "동사", adj: "형용사", adv: "부사" };

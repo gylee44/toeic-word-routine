@@ -50,6 +50,7 @@
   --color-streak: var(--streak);
   --color-streak-soft: var(--streak-soft);
   --font-sans: var(--font-sans);
+  --font-serif: "Source Serif 4", Georgia, serif;
   --shadow-card: var(--shadow-card);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -70,34 +71,37 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-card-lg: 1.25rem;
   --font-sans: "Pretendard Variable", Pretendard, "Noto Sans KR", sans-serif;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.26 0.01 260);
+  /* 종이색 바탕 + 플럼 포인트 (UI 개선 시안 기준) */
+  --background: oklch(0.985 0.004 90);
+  --foreground: oklch(0.21 0.008 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.26 0.01 260);
+  --card-foreground: oklch(0.21 0.008 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.26 0.01 260);
-  --primary: oklch(0.55 0.19 258);
+  --popover-foreground: oklch(0.21 0.008 265);
+  --primary: oklch(0.4 0.115 355);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.965 0.005 260);
-  --secondary-foreground: oklch(0.3 0.01 260);
-  --muted: oklch(0.965 0.005 260);
-  --muted-foreground: oklch(0.5 0.015 260);
-  --accent: oklch(0.95 0.03 258);
-  --accent-foreground: oklch(0.42 0.17 258);
-  --destructive: oklch(0.58 0.21 25);
+  --secondary: oklch(0.955 0.006 85);
+  --secondary-foreground: oklch(0.26 0.01 265);
+  --muted: oklch(0.955 0.006 85);
+  --muted-foreground: oklch(0.5 0.012 265);
+  --accent: oklch(0.955 0.018 355);
+  --accent-foreground: oklch(0.4 0.115 355);
+  --destructive: oklch(0.5 0.19 28);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.6 0.15 155);
+  --success: oklch(0.5 0.1 155);
   --success-foreground: oklch(0.99 0 0);
-  --success-soft: oklch(0.95 0.05 155);
-  --danger-soft: oklch(0.95 0.04 25);
+  --success-soft: oklch(0.96 0.03 155);
+  --danger-soft: oklch(0.955 0.025 25);
   --streak: oklch(0.7 0.17 55);
   --streak-soft: oklch(0.96 0.05 70);
-  --border: oklch(0.92 0.005 260);
-  --input: oklch(0.88 0.008 260);
-  --ring: oklch(0.55 0.19 258);
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 4%), 0 4px 16px oklch(0.3 0.05 258 / 6%);
+  --border: oklch(0.92 0.008 85);
+  --input: oklch(0.87 0.01 85);
+  --ring: oklch(0.4 0.115 355);
+  --shadow-card: 0 1px 0 oklch(0 0 0 / 3%);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -124,6 +128,15 @@
   }
 }
 
+/* 홈 등에서 쓰는 카드 표면 (반경은 데스크톱에서 한 단계 커진다) */
+@utility card-surface {
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  border-radius: var(--radius-card);
+  @media (min-width: 1024px) {
+    border-radius: var(--radius-card-lg);
+  }
+}
 @utility perspective {
   perspective: 1200px;
 }

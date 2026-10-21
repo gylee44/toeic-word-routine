@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import { QuizRunner } from "@/components/QuizRunner";
 import { useErrorToast } from "@/components/useErrorToast";
 import { getReviewWords, getWordsByIds, getWrongNotes } from "@/lib/api";
 import { getQuizQueue } from "@/lib/session";
 import type { StudyMode } from "@/types";
 
-const MODES: StudyMode[] = ["learn", "review", "wrong", "day"];
+const MODES: StudyMode[] = ["learn", "review", "wrong"];
 
 export const Route = createFileRoute("/_authenticated/quiz/")({
   validateSearch: (s: Record<string, unknown>): { mode: StudyMode } => ({
@@ -34,8 +35,9 @@ export function QuizByMode({ mode }: { mode: StudyMode }) {
   if (!q.data) return <Skeleton className="mt-20 h-80 rounded-3xl" />;
   if (q.data.length === 0)
     return (
-      <div className="pt-20">
-        <EmptyState title="풀 문제가 없어요" description="학습하거나 복습할 단어가 생기면 다시 와주세요." action={<Button asChild size="lg" className="w-full"><Link to="/home">홈으로</Link></Button>} />
+      <div className="pt-20 lg:pt-0">
+        <PageHeader title={mode === "review" ? "오늘의 복습" : mode === "wrong" ? "오답 다시 풀기" : "퀴즈"} desktopOnly />
+        <EmptyState title="풀 문제가 없어요" description="학습하거나 복습할 단어가 생기면 다시 와주세요." action={<Button asChild size="lg" className="w-full lg:h-14"><Link to="/home">홈으로</Link></Button>} />
       </div>
     );
   const title = mode === "review" ? `오늘의 복습 ${q.data.length}개` : mode === "wrong" ? `오답 다시 풀기 ${q.data.length}개` : "학습 확인 퀴즈";

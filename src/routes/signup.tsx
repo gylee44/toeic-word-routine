@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/PageHeader";
+import { AuthLayout } from "@/components/AuthLayout";
+import { AuthDivider, GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useRedirectIfAuthed } from "@/components/ProtectedRoute";
 import { errorMessage } from "@/components/useErrorToast";
 import { signUp } from "@/lib/api";
@@ -27,6 +29,8 @@ function Signup() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  // 이메일 인증이 켜져 있으면 가입 직후 세션이 없다. 이때 인증 메일 안내를 보여준다.
+  const [sentTo, setSentTo] = useState("");
 
   const errors: Partial<Record<keyof typeof f, string>> = {};
   if (!f.name.trim()) errors.name = "이름을 입력해 주세요.";
@@ -41,8 +45,9 @@ function Signup() {
     setLoading(true);
     setServerError("");
     try {
-      await signUp(f.name, f.email, f.password);
-      navigate({ to: "/onboarding" });
+      const profile = await signUp(f.name, f.email, f.password);
+      if (profile) navigate({ to: "/onboarding", replace: true });
+      else setSentTo(f.email.trim());
     } catch (err) {
       setServerError(errorMessage(err));
     } finally {
@@ -58,32 +63,44 @@ function Signup() {
         type={type}
         autoComplete={auto}
         value={f[key]}
-        className="h-12 rounded-xl text-base"
         aria-invalid={!!(touched[key] && errors[key])}
         aria-describedby={`${key}-err`}
         onChange={(e) => setF({ ...f, [key]: e.target.value })}
         onBlur={() => setTouched({ ...touched, [key]: true })}
       />
-      {touched[key] && errors[key] && <p id={`${key}-err`} className="text-sm text-destructive">{errors[key]}</p>}
+      {touched[key] && errors[key] && (
+        <p id={`${key}-err`} className="flex items-center gap-1.5 text-[13px] text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+          {errors[key]}
+        </p>
+      )}
     </div>
   );
 
+  if (sentTo) {
+    return (
+      <AuthLayout title="메일함을 확인해 주세요" description={`${sentTo}로 인증 메일을 보냈어요.`}>
+        <p className="text-sm leading-relaxed text-muted-foreground">메일의 링크를 누르면 인증이 끝나고 바로 시작할 수 있어요. 메일이 보이지 않으면 스팸함도 확인해 주세요.</p>
+        <Button asChild size="xl" variant="outline" className="mt-6 w-full"><Link to="/login" search={{ redirect: undefined }}>로그인으로 이동</Link></Button>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <div className="flex min-h-dvh flex-col py-6">
-      <Link to="/"><Logo /></Link>
-      <h1 className="mt-10 text-2xl font-bold">회원가입</h1>
-      <p className="mt-1 text-muted-foreground">30초면 시작할 수 있어요.</p>
-      <form onSubmit={submit} noValidate className="mt-8 grid gap-5">
+    <AuthLayout title="회원가입" description="30초면 시작할 수 있어요.">
+      <form onSubmit={submit} noValidate className="grid gap-5">
         {field("name", "이름", "text", "name")}
         {field("email", "이메일", "email", "email")}
         {field("password", "비밀번호 (8자 이상)", "password", "new-password")}
         {field("confirm", "비밀번호 확인", "password", "new-password")}
-        {serverError && <p role="alert" className="rounded-xl bg-danger-soft p-3 text-sm text-destructive">{serverError}</p>}
+        {serverError && <p role="alert" className="flex items-center gap-2 rounded-lg bg-danger-soft p-3 text-sm font-medium text-destructive"><AlertCircle className="h-4 w-4 shrink-0" aria-hidden />{serverError}</p>}
         <Button type="submit" size="xl" disabled={loading}>{loading ? "가입 중..." : "가입하기"}</Button>
+        <AuthDivider />
+        <GoogleSignInButton onError={setServerError} />
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         이미 계정이 있나요? <Link to="/login" search={{ redirect: undefined }} className="font-semibold text-primary">로그인</Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }
