@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/components/useErrorToast";
-import { saveOnboarding } from "@/lib/api";
+import { saveOnboarding, signOut } from "@/lib/api";
 import { DAILY_GOALS, TARGET_SCORES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,7 @@ export function GoalPicker({ target, goal, setTarget, setGoal, variant = "cards"
 
 function Onboarding() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [target, setTarget] = useState<number | null>(null);
   const [goal, setGoal] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -122,9 +124,22 @@ function Onboarding() {
     }
   }
 
+  // 온보딩 전에는 다른 화면으로 갈 수 없으므로, 계정을 바꿀 수 있게 로그아웃을 둔다
+  async function logout() {
+    try {
+      await qc.cancelQueries();
+      qc.clear();
+      await signOut();
+      navigate({ to: "/login", search: { redirect: undefined }, replace: true });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   return (
     <div className="flex min-h-dvh flex-col py-7 lg:min-h-0 lg:flex-row lg:items-start lg:gap-20 lg:pb-20 lg:pt-24">
-      <div className="lg:max-w-[400px] lg:flex-1">
+      {/* 왼쪽 안내 문구: 기준 너비 400px로 두고 늘어나지 않게 한다 (오른쪽 폼이 남는 공간을 차지) */}
+      <div className="lg:flex-[0_1_400px]">
         <p className="text-[13px] font-medium text-muted-foreground lg:text-sm">가입 완료 · 마지막 단계</p>
         <h1 className="mt-2.5 text-[30px] font-bold leading-[1.3] tracking-[-0.03em] lg:mt-3 lg:text-[44px] lg:leading-[1.25]">
           목표를<br className="hidden lg:block" /> 알려주세요
@@ -139,6 +154,9 @@ function Onboarding() {
           <p className="mt-3 text-[13px] text-muted-foreground lg:hidden">언제든 더보기에서 바꿀 수 있어요.</p>
         </div>
         <Button size="xl" className="mt-6 lg:mt-10" disabled={!target || !goal || saving} onClick={start}>시작하기</Button>
+        <Button type="button" variant="ghost" className="mt-2 self-center text-sm font-medium text-muted-foreground" onClick={logout}>
+          다른 계정으로 로그인
+        </Button>
       </div>
     </div>
   );

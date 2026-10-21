@@ -5,14 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/AuthLayout";
+import { AuthDivider, GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useRedirectIfAuthed } from "@/components/ProtectedRoute";
 import { errorMessage } from "@/components/useErrorToast";
 import { signIn } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): { redirect?: string | undefined } => {
+  // error: Google 로그인·인증 링크 처리(/auth/callback)에서 실패했을 때 보여줄 문구
+  validateSearch: (s: Record<string, unknown>): { redirect?: string | undefined; error?: string | undefined } => {
     const r = s["redirect"];
-    return { redirect: typeof r === "string" && r.startsWith("/") ? r : undefined };
+    const e = s["error"];
+    return {
+      redirect: typeof r === "string" && r.startsWith("/") ? r : undefined,
+      error: typeof e === "string" ? e.slice(0, 200) : undefined,
+    };
   },
   head: () => ({
     meta: [
@@ -26,12 +32,12 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  useRedirectIfAuthed();
-  const { redirect } = Route.useSearch();
+  const { redirect, error: callbackError } = Route.useSearch();
+  useRedirectIfAuthed(!callbackError);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(callbackError ?? "");
   const [loading, setLoading] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -41,7 +47,7 @@ function Login() {
     setError("");
     try {
       const p = await signIn(email, password);
-      if (!p.onboarded) navigate({ to: "/onboarding" });
+      if (!p.onboarded) navigate({ to: "/onboarding", replace: true });
       else if (redirect) navigate({ href: redirect, replace: true });
       else navigate({ to: "/home", replace: true });
     } catch (err) {
@@ -64,6 +70,8 @@ function Login() {
         </div>
         {error && <p role="alert" className="flex items-center gap-2 rounded-lg bg-danger-soft p-3 text-sm font-medium text-destructive"><AlertCircle className="h-4 w-4 shrink-0" aria-hidden />{error}</p>}
         <Button type="submit" size="xl" disabled={loading}>{loading ? "로그인 중..." : "로그인"}</Button>
+        <AuthDivider />
+        <GoogleSignInButton redirect={redirect} onError={setError} />
       </form>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         처음이신가요? <Link to="/signup" className="font-semibold text-primary">회원가입</Link>

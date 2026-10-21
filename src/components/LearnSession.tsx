@@ -92,7 +92,7 @@ export function LearnSession({ words, mode, title }: { words: Word[]; mode: Stud
         <Button size="xl" variant="secondary" disabled={saving} onClick={() => answer(false)}>모르겠어요</Button>
         <Button size="xl" disabled={saving} onClick={() => answer(true)}>알아요</Button>
       </div>
-      <p className="mt-3 pb-1 text-center text-xs leading-normal text-muted-foreground lg:mt-0 lg:pb-0">모르겠어요는 오늘 다시, 알아요는 내일 복습해요</p>
+      <p className="mt-3 pb-1 text-center text-xs leading-normal text-muted-foreground lg:mt-0 lg:pb-0">모르겠어요는 오늘 다시, 알아요는 1~2일 뒤 복습해요</p>
     </div>
   );
 }

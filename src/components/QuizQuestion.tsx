@@ -1,11 +1,12 @@
 import { Check, X } from "lucide-react";
 import { POS_KO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import type { QuizChoice } from "@/lib/api";
 import type { Word } from "@/types";
 
 interface Props {
   word: Word;
-  choices: Word[];
+  choices: QuizChoice[];
   selectedId: string | null;
   submitting: boolean;
   onSelect: (choiceId: string) => void;

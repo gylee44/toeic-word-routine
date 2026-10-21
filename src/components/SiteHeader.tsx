@@ -4,9 +4,8 @@ import { NAV_TABS } from "@/components/BottomNav";
 import { Logo } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 
-/** 학습·퀴즈 화면은 홈 탭, Day 상세는 Day 탭을 활성으로 본다 */
+/** 학습·퀴즈 화면은 홈 탭을 활성으로 본다 */
 function activeTabPath(pathname: string) {
-  if (pathname.startsWith("/days")) return "/days";
   if (pathname.startsWith("/wrong-notes")) return "/wrong-notes";
   if (pathname.startsWith("/more")) return "/more";
   return "/home";

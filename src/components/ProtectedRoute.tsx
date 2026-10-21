@@ -11,12 +11,18 @@ export async function protectedRoute(location: { href: string; pathname: string 
   return { profile };
 }
 
-/** Public-only pages: send signed-in users to /home. */
-export function useRedirectIfAuthed() {
+/**
+ * Public-only pages: send signed-in users to /home. 프로필이 없는 세션은 보내지 않는다(리다이렉트 반복 방지).
+ * enabled=false: 로그인 오류를 보여주는 중에는 이동하지 않고, 다른 계정으로 다시 로그인할 수 있게 둔다.
+ */
+export function useRedirectIfAuthed(enabled = true) {
   const navigate = useNavigate();
   useEffect(() => {
-    getSession().then((s) => {
-      if (s) navigate({ to: "/home", replace: true });
-    });
-  }, [navigate]);
+    if (!enabled) return;
+    getProfile()
+      .then((p) => {
+        if (p) navigate({ to: "/home", replace: true });
+      })
+      .catch(() => {});
+  }, [navigate, enabled]);
 }

@@ -7,14 +7,14 @@ import { ExitButton } from "@/components/LearnSession";
 import { ProgressBar } from "@/components/ProgressBar";
 import { QuizQuestion } from "@/components/QuizQuestion";
 import { errorMessage } from "@/components/useErrorToast";
-import { getQuizChoices, recordQuizAnswer } from "@/lib/api";
+import { getQuizChoices, recordQuizAnswer, type QuizChoice } from "@/lib/api";
 import { setQuizResult } from "@/lib/session";
 import type { StudyMode, Word } from "@/types";
 
 export function QuizRunner({ words, mode, title }: { words: Word[]; mode: StudyMode; title: string }) {
   const navigate = useNavigate();
   const [idx, setIdx] = useState(0);
-  const [choices, setChoices] = useState<Word[] | null>(null);
+  const [choices, setChoices] = useState<QuizChoice[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const lock = useRef(false);

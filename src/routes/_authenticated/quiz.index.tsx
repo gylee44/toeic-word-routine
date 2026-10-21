@@ -10,7 +10,7 @@ import { getReviewWords, getWordsByIds, getWrongNotes } from "@/lib/api";
 import { getQuizQueue } from "@/lib/session";
 import type { StudyMode } from "@/types";
 
-const MODES: StudyMode[] = ["learn", "review", "wrong", "day"];
+const MODES: StudyMode[] = ["learn", "review", "wrong"];
 
 export const Route = createFileRoute("/_authenticated/quiz/")({
   validateSearch: (s: Record<string, unknown>): { mode: StudyMode } => ({

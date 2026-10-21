@@ -30,12 +30,16 @@ function Home() {
       </div>
     );
   }
-  const { todayLearned, dailyGoal, reviewDue, streak, studiedDates } = summary.data;
+  const { todayLearned, dailyGoal, remainingNew, reviewDue, streak, studiedDates } = summary.data;
   const goalMet = todayLearned >= dailyGoal;
+  // 하루 신규 학습 상한에 닿으면 추가 학습을 막는다 (관리자는 remainingNew가 null)
+  const capReached = remainingNew === 0;
   const t = profile.data.targetScore;
   const wrongCount = wrong.data?.length ?? 0;
 
-  const action = goalMet ? (
+  const action = capReached ? (
+    <p className="text-sm text-muted-foreground lg:text-[15px]">오늘은 여기까지 학습했어요. 내일 새 단어로 만나요.</p>
+  ) : goalMet ? (
     <Button asChild size="lg" variant="soft" className="w-full lg:h-14 lg:w-auto lg:px-7 lg:text-base"><Link to="/learn" search={{ extra: true }}>추가 학습</Link></Button>
   ) : (
     <Button asChild size="lg" className="w-full lg:h-14 lg:w-auto lg:px-7 lg:text-base">

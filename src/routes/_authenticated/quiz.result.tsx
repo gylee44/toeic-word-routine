@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { WORDS } from "@/data/words";
+import { useErrorToast } from "@/components/useErrorToast";
+import { getWordsByIds } from "@/lib/api";
 import { getQuizResult, type QuizResult } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/quiz/result")({
@@ -15,10 +18,13 @@ function Result() {
   const navigate = useNavigate();
   const [r, setR] = useState<QuizResult | null | undefined>(undefined);
   useEffect(() => setR(getQuizResult()), []);
+  const wrongIds = r?.wrongIds ?? [];
+  const wrongWords = useQuery({ queryKey: ["words", wrongIds], queryFn: () => getWordsByIds(wrongIds), enabled: wrongIds.length > 0 });
+  useErrorToast(wrongWords.error, wrongWords.refetch);
   if (r === undefined) return null;
   if (!r) return <div className="pt-20 lg:pt-14"><EmptyState title="결과가 없어요" action={<Button asChild size="lg" className="w-full"><Link to="/home">홈으로</Link></Button>} /></div>;
-  const wrong = r.wrongIds.map((id) => WORDS.find((w) => w.id === id)).filter((w) => !!w);
-  const perfect = wrong.length === 0;
+  const perfect = r.wrongIds.length === 0;
+  const wrong = wrongWords.data ?? [];
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col py-7 lg:min-h-[calc(100dvh-72px)] lg:max-w-[1040px] lg:flex-row lg:flex-wrap lg:items-start lg:gap-x-[72px] lg:gap-y-12 lg:py-[88px]">
@@ -44,8 +50,9 @@ function Result() {
         <section className="mt-9 lg:mt-0 lg:min-w-0 lg:flex-[1_1_380px] lg:rounded-[22px] lg:border lg:bg-card lg:px-8 lg:pb-3 lg:pt-7">
           <div className="flex items-baseline justify-between border-b border-foreground pb-2.5 lg:pb-3.5">
             <h2 className="text-[15px] font-bold lg:text-base">틀린 단어</h2>
-            <span className="text-[13px] text-muted-foreground lg:text-sm">{wrong.length}개</span>
+            <span className="text-[13px] text-muted-foreground lg:text-sm">{r.wrongIds.length}개</span>
           </div>
+          {!wrongWords.data && <div className="grid gap-2 pt-3">{r.wrongIds.map((id) => <Skeleton key={id} className="h-12 rounded-xl" />)}</div>}
           <ul>
             {wrong.map((w) => (
               <li key={w.id} className="flex items-center gap-3 border-b py-4 last:border-b-0 lg:gap-3.5 lg:py-5">

@@ -20,8 +20,7 @@ import { Route as AuthenticatedMoreRouteImport } from './routes/_authenticated/m
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
 import { Route as AuthenticatedWrongNotesRouteImport } from './routes/_authenticated/wrong-notes'
-import { Route as AuthenticatedDaysIndexRouteImport } from './routes/_authenticated/days.index'
-import { Route as AuthenticatedDaysDayNoRouteImport } from './routes/_authenticated/days.$dayNo'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedQuizIndexRouteImport } from './routes/_authenticated/quiz.index'
 import { Route as AuthenticatedQuizResultRouteImport } from './routes/_authenticated/quiz.result'
 
@@ -79,15 +78,10 @@ const AuthenticatedWrongNotesRoute = AuthenticatedWrongNotesRouteImport.update({
   path: '/wrong-notes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedDaysIndexRoute = AuthenticatedDaysIndexRouteImport.update({
-  id: '/days/',
-  path: '/days/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDaysDayNoRoute = AuthenticatedDaysDayNoRouteImport.update({
-  id: '/days/$dayNo',
-  path: '/days/$dayNo',
-  getParentRoute: () => AuthenticatedRoute,
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedQuizIndexRoute = AuthenticatedQuizIndexRouteImport.update({
   id: '/quiz/',
@@ -111,9 +105,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/review': typeof AuthenticatedReviewRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
-  '/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
-  '/days/': typeof AuthenticatedDaysIndexRoute
   '/quiz/': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRoutesByTo {
@@ -127,9 +120,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/review': typeof AuthenticatedReviewRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
-  '/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
-  '/days': typeof AuthenticatedDaysIndexRoute
   '/quiz': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRoutesById {
@@ -145,9 +137,8 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/review': typeof AuthenticatedReviewRoute
   '/_authenticated/wrong-notes': typeof AuthenticatedWrongNotesRoute
-  '/_authenticated/days/$dayNo': typeof AuthenticatedDaysDayNoRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/quiz/result': typeof AuthenticatedQuizResultRoute
-  '/_authenticated/days/': typeof AuthenticatedDaysIndexRoute
   '/_authenticated/quiz/': typeof AuthenticatedQuizIndexRoute
 }
 export interface FileRouteTypes {
@@ -163,9 +154,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/review'
     | '/wrong-notes'
-    | '/days/$dayNo'
+    | '/auth/callback'
     | '/quiz/result'
-    | '/days/'
     | '/quiz/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -179,9 +169,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/review'
     | '/wrong-notes'
-    | '/days/$dayNo'
+    | '/auth/callback'
     | '/quiz/result'
-    | '/days'
     | '/quiz'
   id:
     | '__root__'
@@ -196,9 +185,8 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/review'
     | '/_authenticated/wrong-notes'
-    | '/_authenticated/days/$dayNo'
+    | '/auth/callback'
     | '/_authenticated/quiz/result'
-    | '/_authenticated/days/'
     | '/_authenticated/quiz/'
   fileRoutesById: FileRoutesById
 }
@@ -208,6 +196,7 @@ export interface RootRouteChildren {
   LicensesRoute: typeof LicensesRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -289,19 +278,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWrongNotesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/days/': {
-      id: '/_authenticated/days/'
-      path: '/days'
-      fullPath: '/days/'
-      preLoaderRoute: typeof AuthenticatedDaysIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/days/$dayNo': {
-      id: '/_authenticated/days/$dayNo'
-      path: '/days/$dayNo'
-      fullPath: '/days/$dayNo'
-      preLoaderRoute: typeof AuthenticatedDaysDayNoRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/quiz/': {
       id: '/_authenticated/quiz/'
@@ -327,9 +309,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedReviewRoute: typeof AuthenticatedReviewRoute
   AuthenticatedWrongNotesRoute: typeof AuthenticatedWrongNotesRoute
-  AuthenticatedDaysDayNoRoute: typeof AuthenticatedDaysDayNoRoute
   AuthenticatedQuizResultRoute: typeof AuthenticatedQuizResultRoute
-  AuthenticatedDaysIndexRoute: typeof AuthenticatedDaysIndexRoute
   AuthenticatedQuizIndexRoute: typeof AuthenticatedQuizIndexRoute
 }
 
@@ -340,9 +320,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedReviewRoute: AuthenticatedReviewRoute,
   AuthenticatedWrongNotesRoute: AuthenticatedWrongNotesRoute,
-  AuthenticatedDaysDayNoRoute: AuthenticatedDaysDayNoRoute,
   AuthenticatedQuizResultRoute: AuthenticatedQuizResultRoute,
-  AuthenticatedDaysIndexRoute: AuthenticatedDaysIndexRoute,
   AuthenticatedQuizIndexRoute: AuthenticatedQuizIndexRoute,
 }
 
@@ -356,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   LicensesRoute: LicensesRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

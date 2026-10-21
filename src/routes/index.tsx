@@ -1,10 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/Container";
 import { useRedirectIfAuthed } from "@/components/ProtectedRoute";
 import { SiteHeader } from "@/components/SiteHeader";
+import { authErrorMessage } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
+  // Supabase는 인증 오류를 Site URL(/)로 돌려보낸다: ?error=...&error_code=...
+  validateSearch: (s: Record<string, unknown>): { error?: string | undefined; error_code?: string | undefined } => ({
+    error: typeof s["error"] === "string" ? s["error"] : undefined,
+    error_code: typeof s["error_code"] === "string" ? s["error_code"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "단어루틴 - 토익 빈출 단어, 하루 10분 자동 복습" },
@@ -40,7 +47,13 @@ function CardStack() {
 }
 
 function Landing() {
-  useRedirectIfAuthed();
+  const { error, error_code } = Route.useSearch();
+  const navigate = useNavigate();
+  useRedirectIfAuthed(!error);
+  // 인증 오류로 돌아왔으면 로그인 화면에서 안내하고 다시 시도하게 한다
+  useEffect(() => {
+    if (error) navigate({ to: "/login", search: { redirect: undefined, error: authErrorMessage(error, error_code) }, replace: true });
+  }, [error, error_code, navigate]);
   const cta = (
     <>
       <Button asChild size="xl" className="lg:w-auto lg:px-9"><Link to="/signup">시작하기</Link></Button>
