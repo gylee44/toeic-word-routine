@@ -97,7 +97,7 @@ seed/                       단어 CSV, 시드 스크립트, 데모 계정 시�
 - 오답노트: `wrong_count > 0 AND correct_streak < 2`, `last_wrong_at` 내림차순
 - 오늘 학습량: `first_studied_date`가 오늘(KST)인 단어 수. 복습은 제외
 - 연속 학습일: `study_events.study_date` 연속 일수
-- 목표 점수 → 시작 구간: `START_TIER_BY_TARGET` 상수 사용 (확정 전: 목표 점수별 단어 세트로 바뀔 수 있음, PRD FR-03 참고)
+- 목표 점수 → 시작 구간: `START_TIER_BY_TARGET` 상수 사용 (확정: 목표 점수는 시작 tier만 정하고 Day 순번대로 진행 후 다음 tier로, PRD FR-03·11.2)
 - 모든 날짜는 KST. DB에서는 `(now() at time zone 'Asia/Seoul')::date`
 
 ### 보안
