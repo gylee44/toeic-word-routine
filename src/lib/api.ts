@@ -2,7 +2,9 @@
  * 데이터 접근 계층. UI는 이 파일의 함수만 호출하고 Supabase를 직접 부르지 않는다.
  * 채점·SRS·하루 상한 같은 규칙은 서버 RPC가 처리하고, 여기서는 호출과 형태 변환만 한다.
  */
+import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { requestCardPayment } from "@/lib/toss";
 import { todayKST } from "@/lib/date";
 import type { LearnedWord, Pos, Profile, StudyMode, Word } from "@/types";
 
@@ -30,6 +32,7 @@ interface ProfileRow {
   start_tier: number | null;
   daily_goal: number | null;
   onboarded_at: string | null;
+  pro_until?: string | null;
 }
 
 const toWord = (r: WordRow): Word => ({
@@ -51,6 +54,7 @@ const toProfile = (r: ProfileRow, email: string): Profile => ({
   dailyGoal: r.daily_goal,
   startTier: r.start_tier,
   onboarded: r.onboarded_at !== null,
+  proUntil: r.pro_until ?? null,
 });
 
 /** Supabase Auth 오류 코드 → 화면 문구 */
@@ -161,7 +165,7 @@ export async function getProfile(): Promise<Profile | null> {
   if (!s.session) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,name,target_score,start_tier,daily_goal,onboarded_at")
+    .select("id,name,target_score,start_tier,daily_goal,onboarded_at,pro_until")
     .eq("id", s.session.user.id)
     .maybeSingle<ProfileRow>();
   if (error) throw toError(error);
@@ -313,7 +317,7 @@ export interface HomeSummary {
   dailyGoal: number;
   /** 하루 신규 학습 상한 */
   dailyCap: number;
-  /** 오늘 더 학습할 수 있는 새 단어 수. 관리자는 null(제한 없음) */
+  /** 오늘 더 학습할 수 있는 새 단어 수. 관리자와 Pro 이용 중이면 null(제한 없음) */
   remainingNew: number | null;
   reviewDue: number;
   streak: number;
@@ -341,4 +345,50 @@ export async function getHomeSummary(): Promise<HomeSummary> {
     streak: s.streak,
     studiedDates: s.studied_dates,
   };
+}
+
+// ---------- 결제 (PRD FR-12) ----------
+/** Pro 이용 기간 중인지. 서버의 상한 판정(has_unlimited_learning)과 같은 기준이다. */
+export function isProActive(proUntil: string | null, now: Date = new Date()): boolean {
+  return proUntil !== null && new Date(proUntil) > now;
+}
+
+/** 토스 결제창에서 사용자가 닫거나 취소한 경우의 오류 코드 */
+const TOSS_CANCEL_CODES = new Set(["USER_CANCEL", "PAY_PROCESS_CANCELED"]);
+
+/**
+ * Pro 이용권 주문을 만들고 토스 결제창을 연다. 가격·기간은 서버(create_payment_order)가 정한다.
+ * 결제창을 닫으면 조용히 끝난다. 결제를 마치면 토스가 /payments/success 또는 /payments/fail로 이동시킨다.
+ */
+export async function startProPayment(): Promise<void> {
+  await requireUser();
+  const { data, error } = await supabase.rpc("create_payment_order", { p_product_code: "pro_pass" });
+  if (error) throw toError(error);
+  const order = data as { order_id: string; amount: number; order_name: string };
+  try {
+    await requestCardPayment({ orderId: order.order_id, amount: order.amount, orderName: order.order_name });
+  } catch (e) {
+    const code = (e as { code?: unknown }).code;
+    if (typeof code === "string" && TOSS_CANCEL_CODES.has(code)) return;
+    throw new Error("결제창을 열지 못했어요. 다시 시도해 주세요.");
+  }
+}
+
+/**
+ * 결제 성공 페이지에서 승인을 요청한다. 승인과 Pro 부여는 Edge Function(payments-confirm)이 서버에서 처리한다.
+ * 같은 결제로 다시 요청해도 한 번만 반영된다.
+ */
+export async function confirmProPayment(p: { paymentKey: string; orderId: string; amount: number }): Promise<{ proUntil: string | null }> {
+  await requireUser();
+  const { data, error } = await supabase.functions.invoke("payments-confirm", { body: p });
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      // Edge Function이 돌려준 한국어 안내 문구를 그대로 보여준다
+      const body = (await (error.context as Response).json().catch(() => null)) as { message?: unknown } | null;
+      if (typeof body?.message === "string") throw new Error(body.message);
+    }
+    if (error instanceof FunctionsFetchError) throw new Error("네트워크 연결을 확인하고 다시 시도해 주세요.");
+    throw new Error("결제를 확인하지 못했어요. 다시 시도해 주세요.");
+  }
+  return { proUntil: (data as { proUntil: string | null }).proUntil };
 }

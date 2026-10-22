@@ -122,6 +122,11 @@
     border-color: var(--color-border);
   }
 
+  /* 스크롤바가 생기는 화면과 없는 화면(홈 등)의 가운데 정렬 위치가 어긋나지 않게 스크롤바 자리를 항상 비워 둔다 */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

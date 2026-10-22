@@ -1,9 +1,17 @@
 # PRD: 토익 단어 · LC 학습 웹서비스 (가칭)
 
-> 상태: 초안 v0.8 (단어장 화면, 브라우저 음성 발음 듣기, 퀴즈 이어 풀기 추가)
+> 상태: 초안 v0.9 (Pro 이용권 결제 추가: 토스페이먼츠, 기간제)
 > 개발 순서: **1단계 단어 학습(MVP)** → 2단계 LC(듣기) 추가 → 3단계 통계·점수 목표 관리
 > 콘텐츠 원칙: 토익 공식·출판사 기출은 사용하지 않고, 개방 라이선스 단어 목록 + 직접 제작한 오리지널 콘텐츠만 사용한다.
 > 목표 일정: 10/23(금) Demo Day까지 MVP 배포 완료
+
+### v0.9 변경 요약
+
+| 구분 | 변경 내용 |
+|---|---|
+| 범위 | 결제를 Later에서 Must Have(P1)로 이동. 토스페이먼츠로 "Pro 이용권"(1,000원, 30일, 기간제)을 결제한다 (4.3, 5) |
+| 기능 | Pro 이용 중에는 하루 신규 학습 상한(40개)을 적용하지 않는다. 결제 승인은 서버(Edge Function)에서만 처리하고 Secret 키는 서버에만 둔다 (FR-05, FR-12) |
+| 데이터 | `payment_orders` 테이블과 `profiles.pro_until` 추가. 주문은 본인 조회만 허용하고 쓰기는 서버 함수로만 한다 (11.1, 11.7, 11.8, 11.10) |
 
 ### v0.8 변경 요약
 
@@ -131,18 +139,20 @@ MVP에서는 단어 학습에 집중한다. 사용자는 회원가입 후 목표
 | 짧은 세션 | 하루 10분 내외로 끝낼 수 있는 학습 단위 |
 | 합법적인 오리지널 콘텐츠 | 기출 복제 없이 직접 제작·검수한 예문과 문제 사용 |
 
-### 4.3 서비스 모델 및 수익 구조 (MVP 이후 검증)
+### 4.3 서비스 모델 및 수익 구조
 
-MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공해 학습 흐름과 재방문율을 검증**한다. 수익 모델은 아래 방향으로 검토한다.
+학습 기능은 모두 무료로 제공하고, 하루 학습량을 늘리고 싶은 사용자에게 **기간제 Pro 이용권**을 판매한다(v0.9). 결제는 토스페이먼츠를 사용한다.
 
 | 구분 | 내용 | 시기 |
 |---|---|---|
-| 무료(Free) | 단어 학습, 기본 퀴즈, 오답노트 | MVP |
-| 프리미엄 구독 | 학습량 무제한, LC 전 파트, 상세 학습 통계, 광고 없음 | 2~3단계 이후 |
+| 무료(Free) | 단어 학습, 기본 퀴즈, 오답노트 (하루 신규 학습 40개) | MVP |
+| Pro 이용권 | 1,000원, 30일. 하루 신규 학습 상한 해제. 자동 결제 없음 | v0.9 |
+| 프리미엄 구독 | 정기 결제, LC 전 파트, 상세 학습 통계, 광고 없음 | 2~3단계 이후 |
 | 제휴/B2B(선택) | 학원·기관용 단체 계정, 학습 현황 리포트 | 서비스 안정화 이후 |
 
-- 유료 전환 지점은 사용자가 학습 습관이 생긴 이후(예: LC 확장, 상세 통계)에 둔다.
-- 구체적인 가격, 결제 수단은 MVP 사용자 반응을 확인한 뒤 결정한다.
+- Pro 이용권의 가격과 기간은 서버가 정한다. 클라이언트가 보낸 금액·기간은 받지 않는다.
+- 테스트 키와 실결제 키는 키만 바꿔 전환한다. 코드와 DB 구조는 같다.
+- 정기 구독(자동 결제)과 혜택 확대는 사용자 반응을 확인한 뒤 결정한다.
 - 콘텐츠를 직접 제작하므로 외부 기출 사용료가 발생하지 않는다.
 
 ## 5. MVP Scope
@@ -190,6 +200,10 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - [P0] 오늘 복습 대기 단어 수
 - [P1] 연속 학습일(streak)
 
+**결제 (v0.9)**
+- [P1] Pro 이용권(1,000원, 30일) 결제: 토스페이먼츠 결제창, 서버 승인(규칙: FR-12)
+- [P1] Pro 이용 중 하루 신규 학습 상한 해제, 남은 이용 기간 표시
+
 **공통 기능**
 - [P0] 입력값 유효성 검사
 - [P0] 본인 데이터만 조회·수정 가능한 접근 제어(RLS)
@@ -216,7 +230,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - 목표 점수 기반 학습 플랜 추천
 - 즐겨찾기(북마크), 학습 전 단어까지 포함한 검색 (학습한 단어 검색은 단어장에서 제공)
 - 프로필 수정
-- 프리미엄 구독 및 결제(토스페이먼츠 등)
+- 프리미엄 정기 구독(자동 결제), 결제 취소·환불 화면 (단건 Pro 이용권 결제는 v0.9에서 Must Have로 이동)
 - 복습 알림(알림톡·SMS 등)
 - 관리자 콘텐츠 관리 화면
 - Part 5·6 어휘/문법 문제
@@ -471,6 +485,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - 목표 점수·하루 학습량 변경(P1)
 - 로그아웃 버튼
 - 오픈소스 및 데이터 출처 표기(라이선스) 화면 이동(P1)
+- Pro 이용권 화면 이동(P1, v0.9). 이용 중이면 끝나는 날짜, 아니면 가격을 표시한다. Pro 이용권 화면(`/pro`)은 가격·혜택·이용 상태·결제 버튼(이용 중이면 30일 연장)을, 결제 결과 화면(`/payments/success`, `/payments/fail`)은 승인 처리 중·성공·실패와 다시 시도를 보여준다(FR-12)
 - 면책 문구(TOEIC은 ETS의 등록상표이며 본 서비스는 ETS와 무관)
 
 ### 8.13 단어장 화면 (v0.8)
@@ -540,7 +555,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - **오늘의 학습 구성 규칙:** 시작 구간부터 `tier → freq_rank` 순서로 정렬했을 때, 아직 학습 기록이 없는 단어를 (하루 목표 − 오늘 학습한 단어 수)개만큼 가져온다. 시작 구간의 단어를 모두 학습하면 다음 구간으로 넘어간다. 900 구간까지 끝나면 시작 구간보다 낮은 구간(500부터)으로 돌아가고, 모든 단어를 학습했으면 "모든 단어를 학습했어요"를 표시한다.
 - **하루 신규 학습 상한(v0.6):** 새 단어는 하루에 40개까지 학습할 수 있다(하루 목표 포함). 오늘 목표를 달성한 뒤에도 사용자가 원하면 상한 안에서 추가 학습을 할 수 있고, 추가 학습으로 연속 학습일(Day)이 늘지는 않는다.
   - 상한은 현재 목표 점수 기준으로 센다. 목표 점수를 바꾸면 새 목표 점수로 다시 40개까지 학습할 수 있다. 되돌려도 이미 센 개수는 초기화되지 않는다.
-  - 관리자(`role = 'admin'`)는 상한 없이 학습할 수 있다. 이후 구독·결제 권한으로 대체할 수 있도록 판정을 서버 함수 한 곳에 둔다.
+  - 관리자(`role = 'admin'`)와 Pro 이용 중인 사용자(`profiles.pro_until > now()`, v0.9)는 상한 없이 학습할 수 있다. 판정은 서버 함수 한 곳(`has_unlimited_learning`)에 두고 `get_today_words`, `record_flashcard`, `get_home_summary`가 함께 쓴다.
   - 복습은 상한에 포함하지 않는다.
   - 상한은 서버가 `record_flashcard`에서도 검사한다. 상한을 넘는 새 단어 학습 요청은 거부한다.
 - 각 카드에는 단어, 품사, 한국어 뜻, 예문, 예문 해석이 표시되어야 한다.
@@ -602,6 +617,22 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - 저장 실패 시 사용자에게 알리고 진행 중인 학습 상태가 손상되지 않아야 한다.
 - 복습 대상이나 오답이 없는 경우 빈 화면 안내를 표시해야 한다.
 - 세션이 만료되면 로그인 페이지로 이동하고 안내 메시지를 표시한다.
+
+### FR-12. Pro 이용권 결제 (v0.9)
+
+- 상품은 Pro 이용권(`pro_pass`) 하나다. 가격 1,000원, 이용 기간 30일이다.
+- **결제 흐름**
+  1. 클라이언트가 주문 생성 RPC(`create_payment_order`)를 호출한다. 서버가 `order_id`, 금액, 이용 일수를 정해 `pending` 주문을 만든다.
+  2. 클라이언트는 받은 `order_id`와 금액으로 토스 결제창을 연다. 이때 Client 키만 사용한다.
+  3. 결제 후 토스가 성공 URL(`paymentKey`, `orderId`, `amount`)이나 실패 URL로 돌려보낸다.
+  4. 성공 페이지는 세 값을 승인 Edge Function(`payments-confirm`)에 보낸다. 쿼리 값은 신뢰하지 않는다.
+  5. Edge Function은 로그인 사용자, 주문 소유자, `pending` 상태, DB 금액과의 일치를 확인한 뒤 Secret 키로 토스 승인 API를 호출한다. `Idempotency-Key`에는 `order_id`를 넣는다.
+  6. 승인 결과가 `DONE`이면 주문을 `paid`로 바꾸고 `pro_until`을 연장한다. 두 작업은 한 트랜잭션에서 처리한다.
+- **기간 계산:** `pro_until = greatest(pro_until, now()) + pro_days`. 이용 중에 다시 사면 남은 기간 뒤에 이어 붙인다.
+- **중복 승인 방지:** 이미 `paid`인 주문의 승인 요청은 토스를 다시 호출하지 않고 기존 결과를 돌려준다. 상태 변경은 `pending`일 때만 한다.
+- **키 관리:** Secret 키는 Supabase Edge Function Secrets(`TOSS_SECRET_KEY`)에만 둔다. `VITE_` 접두사, 프론트엔드 `.env`, 코드, DB, 로그에 두지 않는다. Client 키는 `VITE_TOSS_CLIENT_KEY`로 둔다.
+- **로그:** 오류 코드와 메시지만 남긴다. 키, Authorization 헤더, 토스 원문 응답 전체는 남기지 않는다.
+- **실패 처리:** 결제창 취소·실패는 토스 오류 코드에 맞춰 한국어로 안내하고 다시 시도할 수 있게 한다. 승인 실패 주문은 `failed`로 남긴다.
 
 ## 10. Acceptance Criteria
 
@@ -697,6 +728,15 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - [ ] 데이터베이스 스키마·RLS·서버 함수가 마이그레이션 파일로 저장소에 포함되어 있다.
 - [ ] Demo Day용 데모 계정에 복습 대기 단어, 오답 단어, 연속 학습 기록이 준비되어 있다.
 
+### AC-11. 결제 (v0.9)
+
+- [ ] (P1) 더보기에서 Pro 이용권(1,000원, 30일)을 결제하면 결제 완료 후 하루 신규 학습 상한 없이 학습할 수 있다.
+- [ ] (P1) 이용 중에 다시 결제하면 남은 기간 뒤로 30일이 이어진다.
+- [ ] (P1) 결제창을 닫거나 결제가 실패하면 안내 문구와 다시 시도 방법이 표시되고 Pro가 부여되지 않는다.
+- [ ] (P1) 성공 URL의 금액을 바꾸거나 같은 승인 요청을 반복해도 Pro가 부여되지 않거나 한 번만 부여된다.
+- [ ] (P1) 사용자가 주문 생성·상태 변경, `pro_until` 변경을 API로 직접 할 수 없고, 다른 사용자의 주문을 조회할 수 없다.
+- [ ] (P1) 저장소와 브라우저 번들에 토스 Secret 키가 포함되어 있지 않다.
+
 ## 11. Data Requirements
 
 데이터는 Supabase PostgreSQL에 저장하며, 사용자 인증은 Supabase Auth를 사용한다. 스키마, RLS, 서버 함수는 `supabase/migrations`의 마이그레이션 파일로 관리한다.
@@ -718,6 +758,7 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 | start_tier | INTEGER | 학습 시작 구간 (서버가 목표 점수로 계산, 온보딩 전 NULL) |
 | daily_goal | INTEGER | 하루 학습 단어 수 (10/20/30, 온보딩 전 NULL) |
 | onboarded_at | TIMESTAMPTZ | 온보딩 완료 시각 (온보딩 전 NULL) |
+| pro_until | TIMESTAMPTZ | Pro 이용 기간 끝 시각 (구매 전 NULL, v0.9). 이 시각이 지나면 Pro가 아니다 |
 | created_at | TIMESTAMPTZ | 계정 생성일 (기본값 `now()`) |
 
 **규칙**
@@ -728,7 +769,8 @@ MVP에서는 결제를 구현하지 않고 **전체 기능을 무료로 제공�
 - **클라이언트는 profiles를 직접 수정하지 않는다.** RLS update 정책만으로는 컬럼 단위 제한이 되지 않아 `role`을 바꿀 수 있기 때문이다. 테이블의 insert·update·delete 권한을 `authenticated`, `anon`에서 회수하고, 온보딩·설정 변경은 `save_onboarding` RPC로만 한다.
 - `start_tier`와 `onboarded_at`은 `save_onboarding`이 서버에서 계산해 저장한다. 클라이언트가 보낸 시작 구간은 받지 않는다.
 - CHECK 제약: `role in ('user', 'admin')`, `daily_goal in (10, 20, 30)`, `target_score`·`start_tier in (500, 600, 700, 800, 900)`.
-- `admin` 역할 부여는 SQL(service role)로만 한다. MVP에는 관리자 화면이 없으므로 `role`을 참조하는 RLS 정책을 두지 않는다. 다만 `get_today_words`, `record_flashcard`, `get_home_summary`가 하루 신규 학습 상한(FR-05) 예외를 판정할 때만 `role = 'admin'`을 참조한다.
+- `admin` 역할 부여는 SQL(service role)로만 한다. MVP에는 관리자 화면이 없으므로 `role`을 참조하는 RLS 정책을 두지 않는다. 다만 `get_today_words`, `record_flashcard`, `get_home_summary`가 하루 신규 학습 상한(FR-05) 예외를 판정할 때만 `role = 'admin'`과 `pro_until`을 참조한다.
+- `pro_until`은 결제 승인 서버 함수(`complete_payment`)만 바꾼다(FR-12). 클라이언트는 조회만 한다.
 
 ### 11.2 Words (단어)
 
@@ -903,6 +945,7 @@ erDiagram
     WORDS ||--o{ USER_WORD_PROGRESS : "단어별 진행"
     PROFILES ||--o{ STUDY_EVENTS : "학습 기록"
     WORDS ||--o{ STUDY_EVENTS : "단어별 기록"
+    PROFILES |o--o{ PAYMENT_ORDERS : "결제 주문"
     LC_QUESTIONS ||--|{ LC_CHOICES : "보기"
     PROFILES ||--o{ LC_ATTEMPTS : "풀이 기록"
     LC_QUESTIONS ||--o{ LC_ATTEMPTS : "문제별 기록"
@@ -914,6 +957,7 @@ erDiagram
 - `Profiles 1 : N Study Events`, `Words 1 : N Study Events`: `Study Events`는 응답마다 쌓이는 로그이며 같은 사용자·단어의 기록이 여러 건 존재한다.
 - `Study Events`와 `User Word Progress`는 FK로 직접 연결하지 않는다. 학습 기록이 있는 단어에만 응답이 가능하다는 규칙은 서버 함수가 보장한다.
 - Day는 별도 테이블이나 컬럼 없이 `study_events.study_date`의 연속 일수로 계산한다(FR-04).
+- `Profiles 1 : N Payment Orders` (v0.9): 결제 기록은 보관해야 하므로 사용자 삭제 시 주문을 지우지 않고 `user_id`만 NULL로 바꾼다(`on delete set null`).
 - (Later) `LC Questions 1 : N LC Choices`
 - (Later) `Profiles 1 : N LC Attempts`, `LC Questions 1 : N LC Attempts`, `LC Choices 1 : N LC Attempts`
 
@@ -924,6 +968,7 @@ erDiagram
 - `user_word_progress`, `study_events`는 본인 조회만 허용하고, 쓰기는 서버 함수(security definer)로만 한다.
 - `profiles`는 본인 조회만 허용하고, 쓰기는 트리거와 `save_onboarding`으로만 한다.
 - `words`는 로그인 사용자(authenticated) 읽기 전용이다. 비로그인(anon)은 접근할 수 없다.
+- `payment_orders`는 본인 조회만 허용하고, 쓰기는 서버 함수로만 한다. `profiles.pro_until`도 결제 승인 서버 함수만 바꾼다(v0.9).
 - RLS 정책과 별도로 테이블 권한도 회수한다(`revoke insert, update, delete ... from authenticated, anon`, `anon`은 select도 회수). Supabase는 기본으로 public 스키마 테이블에 권한을 부여하므로, 정책을 잘못 만들었을 때를 대비한다.
 - 관리자 역할 부여는 신뢰할 수 있는 서버 측 절차(service role SQL)로만 수행한다.
 - 검증: 다른 사용자 세션으로 `user_word_progress`, `study_events`, `profiles`를 조회하면 0행이어야 하고, `profiles.role` 직접 수정은 권한 오류가 나야 한다(AC-07).
@@ -942,6 +987,52 @@ erDiagram
 | 상표 | 서비스명·로고에 "TOEIC"을 사용하지 않고, 면책 문구를 표시한다. |
 
 > 라이선스 조건(예: CC BY-SA의 동일 조건 공개 의무)은 데이터 배포 방식에 영향을 줄 수 있다. 상용 출시 전 최종 확인이 필요하다.
+
+### 11.10 Payment Orders (결제 주문, v0.9)
+
+주문 1건은 토스 결제 1건에 대응한다.
+
+| 필드명 | 타입 | 설명 |
+|---|---|---|
+| id | UUID (PK) | 기본값 `gen_random_uuid()` |
+| order_id | TEXT (UNIQUE) | 토스 `orderId`. 영문 대소문자·숫자·`-`·`_`, 6~64자 |
+| user_id | UUID (FK) | 주문한 사용자. 사용자 삭제 시 NULL |
+| product_code | TEXT | `pro_pass` |
+| order_name | TEXT | 결제창에 보이는 주문명 (빈 문자열 불가) |
+| amount | INTEGER | 결제 금액(원). 주문 생성 시 서버가 정한다 |
+| pro_days | INTEGER | 부여할 이용 일수(1~365). 주문 생성 시 서버가 정한다 |
+| status | TEXT | pending / paid / failed / canceled (기본값 pending) |
+| payment_key | TEXT (UNIQUE) | 토스 `paymentKey` (승인 전 NULL) |
+| method | TEXT | 결제 수단 (NULL 허용) |
+| approved_at | TIMESTAMPTZ | 승인 시각 (NULL 허용) |
+| canceled_at | TIMESTAMPTZ | 취소 시각 (NULL 허용) |
+| fail_code | TEXT | 실패 코드 (NULL 허용) |
+| fail_message | TEXT | 실패 메시지 (NULL 허용) |
+| created_at | TIMESTAMPTZ | 기본값 `now()` |
+| updated_at | TIMESTAMPTZ | 기본값 `now()`. 상태를 바꾸는 서버 함수가 갱신한다 |
+
+**규칙**
+- 상태별 CHECK 제약
+  - `pending`: `payment_key`, `approved_at`, `canceled_at`, `fail_code`가 모두 NULL
+  - `paid`: `payment_key`, `approved_at`이 있고 `canceled_at`, `fail_code`는 NULL
+  - `failed`: `fail_code`가 있고 `approved_at`은 NULL
+  - `canceled`: `canceled_at`이 있음
+- 인덱스: `(user_id, created_at desc)` (내 결제 내역, FK)
+- RLS: 본인 주문만 조회(`user_id = auth.uid()`). insert·update·delete 정책은 없고 테이블 권한도 회수한다. `anon`은 select도 회수한다.
+- 서버 함수 (v0.9 구현)
+
+| 함수 | 실행 권한 | 역할 |
+|---|---|---|
+| `create_payment_order(p_product_code)` | authenticated | 가격·기간을 서버에서 정해 `pending` 주문 생성, `order_id`·금액·주문명 반환 |
+| `complete_payment(...)` | service_role | 주문을 `paid`로 바꾸고 `pro_until` 연장 (한 트랜잭션) |
+| `fail_payment(...)` | service_role | 주문을 `failed`로 바꾸고 실패 코드 저장 |
+| `has_unlimited_learning()` | 내부용 | 관리자 또는 Pro 이용 중이면 true (FR-05) |
+
+- 이 프로젝트의 service_role에는 테이블 데이터 권한이 없다. 승인 Edge Function은 주문을 사용자 토큰(RLS)으로 조회하고, 서버 키로는 `complete_payment`, `fail_payment`만 실행한다.
+- `has_unlimited_learning()`은 security invoker이며 `authenticated`가 실행한다(invoker 함수인 `get_today_words`, `get_home_summary`가 호출하므로). 본인 프로필만 판정한다.
+- `create_payment_order`는 최근 10분 안의 `pending` 주문이 5건 이상이면 `P0001`로 거부한다.
+
+- 검증: 다른 사용자의 주문은 0행, `authenticated`의 주문 insert·update·delete와 `profiles.pro_until` 직접 수정은 권한 오류, `anon`은 조회도 권한 오류여야 한다.
 
 ## 12. Design Direction
 
@@ -1043,7 +1134,7 @@ erDiagram
 
 - **Frontend:** React + TypeScript
 - **Build Tool:** Vite
-- **Routing:** React Router (보호 라우트로 로그인·온보딩 여부 확인)
+- **Routing:** TanStack Router(TanStack Start, 파일 기반 라우팅). 보호 라우트(`_authenticated`)로 로그인·온보딩 여부 확인
 - **Styling:** Tailwind CSS
 - **UI Components:** shadcn/ui (필요에 따라 사용)
 - **Backend / BaaS:** Supabase
@@ -1051,6 +1142,8 @@ erDiagram
 - **Authentication:** Supabase Auth (이메일·비밀번호, P1 소셜 로그인)
 - **Authorization:** Supabase Row Level Security(RLS) + 서버 함수(RPC)
 - **Storage:** Supabase Storage (2단계 LC 음성 파일)
+- **Serverless Functions:** Supabase Edge Functions(Deno). 토스 결제 승인(`payments-confirm`)
+- **Payments:** 토스페이먼츠 결제창 SDK(카드). Client 키는 프론트엔드, Secret 키는 Edge Function에서만 사용 (FR-12)
 - **Hosting:** Vercel 또는 AWS Amplify (HTTPS 기본 제공)
 - **CI/CD:** GitHub Actions + 호스팅 서비스의 Git 연동 자동 배포
 - **Version Control:** Git + GitHub
@@ -1091,6 +1184,7 @@ erDiagram
 
 - 환경변수로 Supabase 연결 정보를 관리한다. 프론트엔드에는 `VITE_SUPABASE_URL`과 공개용(anon/publishable) 키만 둔다.
 - service role(secret) 키는 시드 스크립트용 로컬 `.env`에만 두고, `.env`는 `.gitignore`에 포함한다. 저장소에는 `.env.example`만 올린다.
+- 토스페이먼츠는 Client 키(`VITE_TOSS_CLIENT_KEY`)만 프론트엔드 환경변수에 둔다. Secret 키는 Supabase Edge Function Secrets(`TOSS_SECRET_KEY`)에만 두고 `VITE_` 접두사를 붙이지 않는다(FR-12).
 - 주요 데이터 접근 정책은 Supabase RLS로 적용하고, 클라이언트의 라우트 보호는 보조 수단으로만 사용한다.
 - 복습 단계 갱신, 퀴즈 채점, 오답노트 판정, 퀴즈 보기 생성은 서버 함수(RPC)로 처리해 클라이언트 조작을 방지한다.
 - SRS 간격, 오답노트 해제 조건, 목표 점수별 시작 구간은 설정 가능한 상수로 분리한다.
@@ -1108,13 +1202,14 @@ erDiagram
 - 과정 실습에 맞춰 Vercel 또는 AWS Amplify 중 하나를 선택한다. 두 서비스 모두 GitHub 연동 자동 배포와 HTTPS를 제공한다.
 - 빌드 명령 `npm run build`, 출력 폴더 `dist`
 - **SPA 새로고침 처리:** 모든 경로를 `index.html`로 보내는 규칙을 반드시 추가한다. (Vercel은 `vercel.json`의 rewrites, Amplify는 콘솔의 Rewrites and redirects)
-- 호스팅 서비스의 환경변수에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 등록한다. Vite 환경변수는 빌드 시점에 포함되므로 값을 바꾸면 다시 배포한다.
+- 호스팅 서비스의 환경변수에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_TOSS_CLIENT_KEY`를 등록한다. Vite 환경변수는 빌드 시점에 포함되므로 값을 바꾸면 다시 배포한다. 토스 Secret 키는 호스팅 서비스가 아니라 Supabase Edge Function Secrets에 등록한다.
 
 **Supabase 운영 설정**
 - Authentication의 Site URL과 Redirect URLs에 배포 도메인(및 미리보기 도메인)을 등록한다.
 - 기본 이메일 발송은 발송량 제한이 있으므로, Demo Day 기간에는 이메일 인증을 끄거나 커스텀 SMTP를 연결한다. 정식 운영 전 이메일 인증을 다시 켠다.
 - (P1) 소셜 로그인 제공자 콘솔에 Supabase 콜백 URL을 등록한다.
 - 마이그레이션 파일을 기준으로 운영 DB에 반영하고, 대시보드에서 직접 스키마를 바꾸지 않는다.
+- Edge Function `payments-confirm`은 새 API 키 환경이라 `verify_jwt`를 끄고 함수 안에서 사용자 토큰을 검증한다. 배포 도메인에서 테스트 결제를 다시 확인한다. 실결제로 전환할 때는 Secrets의 키와 `VITE_TOSS_CLIENT_KEY`를 실제(`live_`) 키로 바꾼다.
 
 **CI/CD**
 - GitHub Actions: PR과 `main` push 시 의존성 설치 → 타입 검사(`tsc --noEmit`) → 린트 → 빌드
@@ -1186,7 +1281,7 @@ erDiagram
 
 ### 14.5 수익화 및 플랫폼
 
-- 결제 및 프리미엄 구독 (수익 모델은 4.3 기준으로 이후 검증)
+- 정기 결제(자동 결제) 구독 (단건 Pro 이용권 결제는 v0.9에서 구현 대상, 4.3)
 - 광고 삽입
 - 학원·기관용 B2B 기능
 - 모바일 네이티브 앱
