@@ -1,0 +1,19 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Vite 8은 Node 20.19+ / 22.12+ 필요
+        - nvm use 22 && node --version
+        # 저장소 잠금 파일은 bun.lock뿐이므로 npm install 대신 bun으로 설치
+        - npx --yes bun install --frozen-lockfile
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .amplify-hosting
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
