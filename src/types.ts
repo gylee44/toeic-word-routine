@@ -8,6 +8,8 @@ export interface Profile {
   dailyGoal: number | null;
   startTier: number | null;
   onboarded: boolean;
+  /** Pro 이용 기간 끝 시각(ISO). 구매 전이면 null */
+  proUntil: string | null;
 }
 
 export interface Word {

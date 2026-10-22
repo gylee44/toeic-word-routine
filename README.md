@@ -10,7 +10,8 @@
 - 플래시카드 → 4지선다 퀴즈(정답 해설 포함)
 - 간격 반복(SRS) 기반 자동 복습, 오답노트
 - 홈 화면: 오늘 학습 진행률, 복습 대기 수, 연속 학습일과 이번 주 요일별 기록
-- Day별 단어장: 점수 구간과 무관한 번호 순서, 진행 중인 Day 강조
+- 단어장: 학습한 모든 단어의 검색·필터·정렬, 뜻 가리기, 브라우저 음성 발음 듣기
+- Pro 이용권: 토스페이먼츠 결제(현재 테스트 키), 이용 중에는 하루 새 단어 40개 제한 해제
 
 ## 화면과 반응형
 
@@ -27,7 +28,7 @@
 
 React, TypeScript, Vite, TanStack Start(Router), Tailwind CSS, shadcn/ui
 
-현재는 localStorage mock 데이터로 동작하며, Supabase(Auth, PostgreSQL, RLS, RPC) 연동으로 전환 중이다. 모든 데이터 접근은 `src/lib/api.ts`를 거친다.
+Supabase(Auth, PostgreSQL, RLS, RPC, Edge Functions)와 토스페이먼츠 결제창을 쓴다. 모든 데이터 접근은 `src/lib/api.ts`를 거친다.
 
 ## 시작하기
 
@@ -44,15 +45,30 @@ npm run dev
 | `npm run lint` | 린트 |
 | `npm run test` | 테스트 |
 
+## 환경변수
+
+`.env.example`을 `.env`로 복사해 값을 채운다. `.env`는 저장소에 올리지 않는다.
+
+| 이름 | 설명 |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase 공개용 키 |
+| `VITE_TOSS_CLIENT_KEY` | 토스페이먼츠 Client 키 (공개되어도 되는 키) |
+
+토스 Secret 키(`TOSS_SECRET_KEY`)는 `.env`에 두지 않는다. Supabase 대시보드의 Edge Functions > Secrets에만 등록한다.
+
 ## 폴더 구조
 
 | 경로 | 설명 |
 |---|---|
 | `src/routes/` | 화면. 로그인이 필요한 화면은 `_authenticated/` |
 | `src/components/` | 공용 컴포넌트 (레이아웃, 진행 바, 플래시카드, 퀴즈 등) |
-| `src/lib/api.ts` | 데이터 접근 (mock, 이후 Supabase RPC로 교체) |
+| `src/lib/api.ts` | 데이터 접근 (Supabase, UI는 이 파일의 함수만 호출) |
+| `src/lib/toss.ts` | 토스 결제창 (Client 키만 사용) |
 | `src/lib/constants.ts` | 학습 규칙 상수 |
 | `src/styles.css` | 디자인 토큰 |
+| `supabase/migrations/` | 스키마, RLS, RPC (SQL) |
+| `supabase/functions/` | Edge Function (토스 결제 승인 `payments-confirm`) |
 | `docs/` | PRD, 수용 기준 체크리스트 |
 
 ## 문서

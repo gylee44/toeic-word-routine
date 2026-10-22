@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 
 /** 학습·퀴즈 화면은 홈 탭을 활성으로 본다 */
 function activeTabPath(pathname: string) {
+  if (pathname.startsWith("/words")) return "/words";
   if (pathname.startsWith("/wrong-notes")) return "/wrong-notes";
-  if (pathname.startsWith("/more")) return "/more";
+  // Pro 이용권·결제 결과 화면은 더보기에서 들어가므로 더보기 탭을 활성으로 본다
+  if (pathname.startsWith("/more") || pathname.startsWith("/pro") || pathname.startsWith("/payments")) return "/more";
   return "/home";
 }
 

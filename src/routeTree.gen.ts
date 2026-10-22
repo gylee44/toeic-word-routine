@@ -18,10 +18,13 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedLearnRouteImport } from './routes/_authenticated/learn'
 import { Route as AuthenticatedMoreRouteImport } from './routes/_authenticated/more'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pro'
 import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
 import { Route as AuthenticatedWordsRouteImport } from './routes/_authenticated/words'
 import { Route as AuthenticatedWrongNotesRouteImport } from './routes/_authenticated/wrong-notes'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthenticatedPaymentsFailRouteImport } from './routes/_authenticated/payments.fail'
+import { Route as AuthenticatedPaymentsSuccessRouteImport } from './routes/_authenticated/payments.success'
 import { Route as AuthenticatedQuizIndexRouteImport } from './routes/_authenticated/quiz.index'
 import { Route as AuthenticatedQuizResultRouteImport } from './routes/_authenticated/quiz.result'
 
@@ -69,6 +72,11 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProRoute = AuthenticatedProRouteImport.update({
+  id: '/pro',
+  path: '/pro',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedReviewRoute = AuthenticatedReviewRouteImport.update({
   id: '/review',
   path: '/review',
@@ -89,6 +97,18 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPaymentsFailRoute =
+  AuthenticatedPaymentsFailRouteImport.update({
+    id: '/payments/fail',
+    path: '/payments/fail',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPaymentsSuccessRoute =
+  AuthenticatedPaymentsSuccessRouteImport.update({
+    id: '/payments/success',
+    path: '/payments/success',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedQuizIndexRoute = AuthenticatedQuizIndexRouteImport.update({
   id: '/quiz/',
   path: '/quiz/',
@@ -109,10 +129,13 @@ export interface FileRoutesByFullPath {
   '/learn': typeof AuthenticatedLearnRoute
   '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/pro': typeof AuthenticatedProRoute
   '/review': typeof AuthenticatedReviewRoute
   '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/payments/fail': typeof AuthenticatedPaymentsFailRoute
+  '/payments/success': typeof AuthenticatedPaymentsSuccessRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
   '/quiz/': typeof AuthenticatedQuizIndexRoute
 }
@@ -125,10 +148,13 @@ export interface FileRoutesByTo {
   '/learn': typeof AuthenticatedLearnRoute
   '/more': typeof AuthenticatedMoreRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/pro': typeof AuthenticatedProRoute
   '/review': typeof AuthenticatedReviewRoute
   '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/payments/fail': typeof AuthenticatedPaymentsFailRoute
+  '/payments/success': typeof AuthenticatedPaymentsSuccessRoute
   '/quiz/result': typeof AuthenticatedQuizResultRoute
   '/quiz': typeof AuthenticatedQuizIndexRoute
 }
@@ -143,10 +169,13 @@ export interface FileRoutesById {
   '/_authenticated/learn': typeof AuthenticatedLearnRoute
   '/_authenticated/more': typeof AuthenticatedMoreRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/pro': typeof AuthenticatedProRoute
   '/_authenticated/review': typeof AuthenticatedReviewRoute
   '/_authenticated/words': typeof AuthenticatedWordsRoute
   '/_authenticated/wrong-notes': typeof AuthenticatedWrongNotesRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/_authenticated/payments/fail': typeof AuthenticatedPaymentsFailRoute
+  '/_authenticated/payments/success': typeof AuthenticatedPaymentsSuccessRoute
   '/_authenticated/quiz/result': typeof AuthenticatedQuizResultRoute
   '/_authenticated/quiz/': typeof AuthenticatedQuizIndexRoute
 }
@@ -161,10 +190,13 @@ export interface FileRouteTypes {
     | '/learn'
     | '/more'
     | '/onboarding'
+    | '/pro'
     | '/review'
     | '/words'
     | '/wrong-notes'
     | '/auth/callback'
+    | '/payments/fail'
+    | '/payments/success'
     | '/quiz/result'
     | '/quiz/'
   fileRoutesByTo: FileRoutesByTo
@@ -177,10 +209,13 @@ export interface FileRouteTypes {
     | '/learn'
     | '/more'
     | '/onboarding'
+    | '/pro'
     | '/review'
     | '/words'
     | '/wrong-notes'
     | '/auth/callback'
+    | '/payments/fail'
+    | '/payments/success'
     | '/quiz/result'
     | '/quiz'
   id:
@@ -194,10 +229,13 @@ export interface FileRouteTypes {
     | '/_authenticated/learn'
     | '/_authenticated/more'
     | '/_authenticated/onboarding'
+    | '/_authenticated/pro'
     | '/_authenticated/review'
     | '/_authenticated/words'
     | '/_authenticated/wrong-notes'
     | '/auth/callback'
+    | '/_authenticated/payments/fail'
+    | '/_authenticated/payments/success'
     | '/_authenticated/quiz/result'
     | '/_authenticated/quiz/'
   fileRoutesById: FileRoutesById
@@ -276,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/pro': {
+      id: '/_authenticated/pro'
+      path: '/pro'
+      fullPath: '/pro'
+      preLoaderRoute: typeof AuthenticatedProRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/review': {
       id: '/_authenticated/review'
       path: '/review'
@@ -304,6 +349,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/payments/fail': {
+      id: '/_authenticated/payments/fail'
+      path: '/payments/fail'
+      fullPath: '/payments/fail'
+      preLoaderRoute: typeof AuthenticatedPaymentsFailRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/payments/success': {
+      id: '/_authenticated/payments/success'
+      path: '/payments/success'
+      fullPath: '/payments/success'
+      preLoaderRoute: typeof AuthenticatedPaymentsSuccessRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/quiz/': {
       id: '/_authenticated/quiz/'
       path: '/quiz'
@@ -326,9 +385,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLearnRoute: typeof AuthenticatedLearnRoute
   AuthenticatedMoreRoute: typeof AuthenticatedMoreRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProRoute: typeof AuthenticatedProRoute
   AuthenticatedReviewRoute: typeof AuthenticatedReviewRoute
   AuthenticatedWordsRoute: typeof AuthenticatedWordsRoute
   AuthenticatedWrongNotesRoute: typeof AuthenticatedWrongNotesRoute
+  AuthenticatedPaymentsFailRoute: typeof AuthenticatedPaymentsFailRoute
+  AuthenticatedPaymentsSuccessRoute: typeof AuthenticatedPaymentsSuccessRoute
   AuthenticatedQuizResultRoute: typeof AuthenticatedQuizResultRoute
   AuthenticatedQuizIndexRoute: typeof AuthenticatedQuizIndexRoute
 }
@@ -338,9 +400,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedLearnRoute: AuthenticatedLearnRoute,
   AuthenticatedMoreRoute: AuthenticatedMoreRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProRoute: AuthenticatedProRoute,
   AuthenticatedReviewRoute: AuthenticatedReviewRoute,
   AuthenticatedWordsRoute: AuthenticatedWordsRoute,
   AuthenticatedWrongNotesRoute: AuthenticatedWrongNotesRoute,
+  AuthenticatedPaymentsFailRoute: AuthenticatedPaymentsFailRoute,
+  AuthenticatedPaymentsSuccessRoute: AuthenticatedPaymentsSuccessRoute,
   AuthenticatedQuizResultRoute: AuthenticatedQuizResultRoute,
   AuthenticatedQuizIndexRoute: AuthenticatedQuizIndexRoute,
 }

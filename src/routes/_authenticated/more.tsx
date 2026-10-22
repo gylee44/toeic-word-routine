@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { errorMessage } from "@/components/useErrorToast";
-import { getProfile, saveOnboarding, signOut } from "@/lib/api";
+import { getProfile, isProActive, saveOnboarding, signOut } from "@/lib/api";
+import { formatKSTDate } from "@/lib/date";
 import { GoalPicker } from "./onboarding";
 
 export const Route = createFileRoute("/_authenticated/more")({
@@ -43,6 +44,9 @@ function More() {
   }
 
   const name = profile.data?.name ?? "";
+  const proUntil = profile.data?.proUntil ?? null;
+  // Pro 이용 상태 (이용 중이면 끝나는 날짜, 아니면 가격)
+  const proStatus = isProActive(proUntil) && proUntil ? `${formatKSTDate(proUntil)}까지` : "1,000원 · 30일";
   return (
     <div>
       <PageHeader title="더보기" />
@@ -65,6 +69,10 @@ function More() {
               <span className="mt-px block text-[13px] text-muted-foreground lg:text-sm">{profile.data?.email}</span>
             </span>
           </div>
+          <Link to="/pro" className="hidden items-center justify-between rounded-[22px] border bg-card px-6 py-5 text-base font-medium lg:flex">
+            <span>Pro 이용권<span className="mt-0.5 block text-sm font-normal text-muted-foreground">{proStatus}</span></span>
+            <ChevronRight className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
+          </Link>
           <Link to="/licenses" className="hidden items-center justify-between rounded-[22px] border bg-card px-6 py-5 text-base font-medium lg:flex">
             라이선스 및 출처<ChevronRight className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
           </Link>
@@ -73,6 +81,10 @@ function More() {
       </div>
 
       <div className="mt-4 border-t lg:hidden">
+        <Link to="/pro" className="flex h-14 items-center justify-between border-b text-[15px] font-medium">
+          <span>Pro 이용권</span>
+          <span className="flex items-center gap-1 text-[13px] font-normal text-muted-foreground">{proStatus}<ChevronRight className="h-[18px] w-[18px]" aria-hidden /></span>
+        </Link>
         <Link to="/licenses" className="flex h-14 items-center justify-between border-b text-[15px] font-medium">
           라이선스 및 출처<ChevronRight className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
         </Link>
