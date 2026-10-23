@@ -51,6 +51,7 @@
   --color-streak-soft: var(--streak-soft);
   --font-sans: var(--font-sans);
   --font-serif: "Source Serif 4", Georgia, serif;
+  --font-brand: "Noto Serif KR", "Source Serif 4", Georgia, serif;
   --shadow-card: var(--shadow-card);
   --color-input: var(--input);
   --color-ring: var(--ring);
