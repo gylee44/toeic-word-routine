@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/EmptyState";
+import { HighlightedExample } from "@/components/HighlightedExample";
 import { SpeakButton } from "@/components/SpeakButton";
 import { errorMessage } from "@/components/useErrorToast";
 import { getLearnedWords } from "@/lib/api";
@@ -140,7 +141,9 @@ const WordRow = memo(function WordRow({ word, today, hideMeaning, open, onToggle
           <p className="mb-3 text-xs text-muted-foreground lg:hidden">{dayLabel(word.firstStudiedDate, today)} 학습</p>
           <div className="relative rounded-2xl border bg-card p-4 pr-12 lg:rounded-[18px] lg:px-6 lg:py-5 lg:pr-14">
             <SpeakButton text={word.exampleEn} label="예문 발음 듣기" className="absolute right-1.5 top-1.5 lg:right-3 lg:top-3" />
-            <p className="font-serif text-base font-semibold leading-relaxed lg:text-xl lg:leading-normal">{word.exampleEn}</p>
+            <p className="font-serif text-base font-semibold leading-relaxed lg:text-xl lg:leading-normal">
+              <HighlightedExample text={word.exampleEn} headword={word.headword} />
+            </p>
             <p className="mt-2 text-sm text-muted-foreground lg:text-[15px]">{word.exampleKo}</p>
           </div>
         </div>

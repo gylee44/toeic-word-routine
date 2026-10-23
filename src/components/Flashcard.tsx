@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
+import { HighlightedExample } from "@/components/HighlightedExample";
 import { SpeakButton } from "@/components/SpeakButton";
 import { POS_KO } from "@/lib/constants";
 import { stopSpeaking } from "@/lib/speech";
@@ -62,7 +63,9 @@ export function Flashcard({ word, flipped, onFlip }: { word: Word; flipped: bool
             </div>
             <div className="relative rounded-2xl bg-background p-4 pr-12 lg:flex-1 lg:rounded-[18px] lg:px-[30px] lg:py-7 lg:pr-[60px]">
               <SpeakButton text={word.exampleEn} label="예문 발음 듣기" className="absolute right-1.5 top-1.5 lg:right-3 lg:top-3" />
-              <p className="font-serif text-base font-semibold leading-relaxed lg:text-[23px] lg:leading-normal">{word.exampleEn}</p>
+              <p className="font-serif text-base font-semibold leading-relaxed lg:text-[23px] lg:leading-normal">
+                <HighlightedExample text={word.exampleEn} headword={word.headword} />
+              </p>
               <p className="mt-2 text-sm text-muted-foreground lg:mt-3.5 lg:text-[15px]">{word.exampleKo}</p>
             </div>
           </div>
