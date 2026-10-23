@@ -5,6 +5,8 @@
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { requestCardPayment } from "@/lib/toss";
+import { logError, logInfo, logWarn, newTraceId } from "@/lib/logger";
+import { maskKey } from "@/lib/log-shared";
 import { todayKST } from "@/lib/date";
 import type { LearnedWord, Pos, Profile, StudyMode, Word } from "@/types";
 
@@ -72,7 +74,10 @@ const AUTH_MESSAGES: Record<string, string> = {
  * Supabase 오류를 화면에 보여줄 Error로 바꾼다.
  * RPC가 낸 오류(P0001 등)는 서버의 한국어 메시지를 그대로 쓴다.
  */
-function toError(e: { message: string; code?: string | undefined }): Error {
+function toError(e: { message: string; code?: string | undefined }, op: string): Error {
+  // 화면에는 한국어 안내만 보이므로, 실제 원인(code·details·hint·status)은 로그에 남긴다
+  const area = op.startsWith("auth:") ? (op === "auth:signInWithOAuth" ? "google" : "auth") : "supabase";
+  logError(area, "request_failed", e, { op });
   if (e.code && AUTH_MESSAGES[e.code]) return new Error(AUTH_MESSAGES[e.code]);
   if (e.code && /^(P0001|P0002|22023|28000)$/.test(e.code)) return new Error(e.message);
   if (/fetch|network/i.test(e.message)) return new Error("네트워크 연결을 확인하고 다시 시도해 주세요.");
@@ -81,8 +86,11 @@ function toError(e: { message: string; code?: string | undefined }): Error {
 
 async function requireUser() {
   const { data, error } = await supabase.auth.getSession();
-  if (error) throw toError(error);
-  if (!data.session) throw new Error("로그인이 필요해요.");
+  if (error) throw toError(error, "auth:getSession");
+  if (!data.session) {
+    logWarn("auth", "session_missing", { op: "requireUser" });
+    throw new Error("로그인이 필요해요.");
+  }
   return data.session.user;
 }
 
@@ -96,20 +104,31 @@ export async function signUp(name: string, email: string, password: string): Pro
     password,
     options: { data: { name: name.trim() }, emailRedirectTo: callbackUrl() },
   });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "auth:signUp");
   // 이메일 인증을 켠 상태에서 이미 가입된 이메일이면 오류 대신 identities가 빈 사용자가 온다
-  if (data.user && data.user.identities?.length === 0) throw new Error(AUTH_MESSAGES["user_already_exists"]);
+  if (data.user && data.user.identities?.length === 0) {
+    logWarn("auth", "signup_duplicate_email", { email: email.trim().toLowerCase() });
+    throw new Error(AUTH_MESSAGES["user_already_exists"]);
+  }
+  logInfo("auth", "signup_ok", { needsEmailConfirm: !data.session, userId: data.user?.id });
   if (!data.session) return null;
   const profile = await getProfile();
-  if (!profile) throw new Error("프로필을 만들지 못했어요. 다시 시도해 주세요.");
+  if (!profile) {
+    logError("auth", "profile_missing_after_signup", new Error("profiles 행 없음(가입 트리거 확인)"), { userId: data.user?.id });
+    throw new Error("프로필을 만들지 못했어요. 다시 시도해 주세요.");
+  }
   return profile;
 }
 
 export async function signIn(email: string, password: string): Promise<Profile> {
   const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "auth:signInWithPassword");
   const profile = await getProfile();
-  if (!profile) throw new Error("프로필을 찾을 수 없어요. 다시 시도해 주세요.");
+  if (!profile) {
+    logError("auth", "profile_missing_after_signin", new Error("profiles 행 없음"), {});
+    throw new Error("프로필을 찾을 수 없어요. 다시 시도해 주세요.");
+  }
+  logInfo("auth", "signin_ok", { userId: profile.userId, onboarded: profile.onboarded });
   return profile;
 }
 
@@ -117,8 +136,9 @@ export async function signIn(email: string, password: string): Promise<Profile> 
 export async function signInWithGoogle(redirect?: string): Promise<void> {
   if (redirect) sessionStorage.setItem(AUTH_REDIRECT_KEY, redirect);
   else sessionStorage.removeItem(AUTH_REDIRECT_KEY);
+  logInfo("google", "oauth_start", { redirectTo: callbackUrl(), returnPath: redirect ?? null });
   const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: callbackUrl() } });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "auth:signInWithOAuth");
 }
 
 /**
@@ -140,11 +160,34 @@ export function authErrorMessage(error: string, errorCode?: string | null): stri
 export async function completeAuthCallback(): Promise<{ profile: Profile; redirect: string | undefined }> {
   const params = new URLSearchParams(window.location.search + window.location.hash.replace(/^#/, "&"));
   const urlError = params.get("error");
-  if (urlError) throw new Error(authErrorMessage(urlError, params.get("error_code")));
+  // code·access_token 값은 남기지 않고 존재 여부만 남긴다
+  const callbackInfo = {
+    hasCode: params.has("code"),
+    hasAccessToken: params.has("access_token"),
+    urlError,
+    urlErrorCode: params.get("error_code"),
+    urlErrorDescription: params.get("error_description"),
+  };
+  if (urlError) {
+    logWarn("google", "callback_error_param", callbackInfo);
+    throw new Error(authErrorMessage(urlError, params.get("error_code")));
+  }
   const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session) throw new Error("인증 링크가 만료되었거나 이미 사용되었어요. 다시 로그인해 주세요.");
+  if (error || !data.session) {
+    logError("google", "callback_no_session", error ?? new Error("세션 없음(code 교환 실패 또는 링크 만료)"), callbackInfo);
+    throw new Error("인증 링크가 만료되었거나 이미 사용되었어요. 다시 로그인해 주세요.");
+  }
   const profile = await getProfile();
-  if (!profile) throw new Error("프로필을 찾을 수 없어요. 다시 시도해 주세요.");
+  if (!profile) {
+    logError("google", "callback_profile_missing", new Error("profiles 행 없음(가입 트리거 확인)"), { userId: data.session.user.id });
+    throw new Error("프로필을 찾을 수 없어요. 다시 시도해 주세요.");
+  }
+  logInfo("google", "callback_ok", {
+    ...callbackInfo,
+    provider: data.session.user.app_metadata?.["provider"],
+    userId: profile.userId,
+    onboarded: profile.onboarded,
+  });
   const saved = sessionStorage.getItem(AUTH_REDIRECT_KEY);
   sessionStorage.removeItem(AUTH_REDIRECT_KEY);
   return { profile, redirect: saved?.startsWith("/") ? saved : undefined };
@@ -152,7 +195,7 @@ export async function completeAuthCallback(): Promise<{ profile: Profile; redire
 
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
-  if (error) throw toError(error);
+  if (error) throw toError(error, "auth:signOut");
 }
 
 export async function getSession(): Promise<{ userId: string } | null> {
@@ -168,7 +211,7 @@ export async function getProfile(): Promise<Profile | null> {
     .select("id,name,target_score,start_tier,daily_goal,onboarded_at,pro_until")
     .eq("id", s.session.user.id)
     .maybeSingle<ProfileRow>();
-  if (error) throw toError(error);
+  if (error) throw toError(error, "db:profiles");
   return data ? toProfile(data, s.session.user.email ?? "") : null;
 }
 
@@ -177,7 +220,7 @@ export async function saveOnboarding(targetScore: number, dailyGoal: number): Pr
   const { data, error } = await supabase
     .rpc("save_onboarding", { p_target_score: targetScore, p_daily_goal: dailyGoal })
     .single<ProfileRow>();
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:save_onboarding");
   return toProfile(data, user.email ?? "");
 }
 
@@ -185,7 +228,7 @@ export async function saveOnboarding(targetScore: number, dailyGoal: number): Pr
 /** 오늘의 학습 단어. 개수·정렬·하루 상한은 서버(get_today_words)가 정한다. */
 export async function getTodayWords(opts: { extra?: boolean | undefined } = {}): Promise<Word[]> {
   const { data, error } = await supabase.rpc("get_today_words", { p_extra: !!opts.extra });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:get_today_words");
   return (data as WordRow[]).map(toWord);
 }
 
@@ -193,7 +236,7 @@ export async function getTodayWords(opts: { extra?: boolean | undefined } = {}):
 export async function getWordsByIds(ids: string[]): Promise<Word[]> {
   if (ids.length === 0) return [];
   const { data, error } = await supabase.from("words").select(WORD_COLUMNS).in("id", ids);
-  if (error) throw toError(error);
+  if (error) throw toError(error, "db:words");
   const byId = new Map((data as WordRow[]).map((r) => [r.id, toWord(r)]));
   return ids.map((id) => byId.get(id)).filter((w): w is Word => !!w);
 }
@@ -202,7 +245,7 @@ export async function getWordsByIds(ids: string[]): Promise<Word[]> {
 export async function getTodayLearnedWords(): Promise<Word[]> {
   const user = await requireUser();
   const { data: profile, error: profileError } = await supabase.from("profiles").select("target_score").eq("id", user.id).single();
-  if (profileError) throw toError(profileError);
+  if (profileError) throw toError(profileError, "db:profiles");
   if (profile.target_score == null) return [];
   const { data, error } = await supabase
     .from("user_word_progress")
@@ -211,7 +254,7 @@ export async function getTodayLearnedWords(): Promise<Word[]> {
     .eq("first_studied_date", todayKST())
     .eq("target_score", profile.target_score)
     .order("first_studied_at");
-  if (error) throw toError(error);
+  if (error) throw toError(error, "db:user_word_progress");
   return (data as unknown as { words: WordRow }[]).map((r) => toWord(r.words));
 }
 
@@ -241,7 +284,7 @@ export async function getLearnedWords(): Promise<LearnedWord[]> {
       .order("first_studied_at", { ascending: false })
       .order("word_id")
       .range(from, from + PAGE - 1);
-    if (error) throw toError(error);
+    if (error) throw toError(error, "db:user_word_progress");
     rows.push(...(data as unknown as LearnedRow[]));
     if (data.length < PAGE) break;
   }
@@ -258,14 +301,14 @@ export async function getLearnedWords(): Promise<LearnedWord[]> {
 
 export async function recordFlashcard(wordId: string, known: boolean, mode: StudyMode): Promise<void> {
   const { error } = await supabase.rpc("record_flashcard", { p_word_id: wordId, p_known: known, p_mode: DB_MODE[mode] });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:record_flashcard");
 }
 
 /** 퀴즈 보기. 서버는 정답 표시 없이 id와 뜻만 섞어서 준다. */
 export interface QuizChoice { id: string; meaningKo: string }
 export async function getQuizChoices(wordId: string): Promise<QuizChoice[]> {
   const { data, error } = await supabase.rpc("get_quiz_choices", { p_word_id: wordId });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:get_quiz_choices");
   return (data as { id: string; meaning_ko: string }[]).map((c) => ({ id: c.id, meaningKo: c.meaning_ko }));
 }
 
@@ -276,7 +319,7 @@ export async function recordQuizAnswer(wordId: string, choiceWordId: string, mod
     p_choice_word_id: choiceWordId,
     p_mode: DB_MODE[mode],
   });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:record_quiz_answer");
   return { isCorrect: data === true };
 }
 
@@ -289,7 +332,7 @@ export async function getReviewWords(): Promise<Word[]> {
     .eq("user_id", user.id)
     .lte("next_review_at", todayKST())
     .order("next_review_at");
-  if (error) throw toError(error);
+  if (error) throw toError(error, "db:user_word_progress");
   return (data as unknown as { words: WordRow }[]).map((r) => toWord(r.words));
 }
 
@@ -304,7 +347,7 @@ export async function getWrongNotes(): Promise<WrongNote[]> {
     .gt("wrong_count", 0)
     .lt("correct_streak", 2)
     .order("last_wrong_at", { ascending: false, nullsFirst: false });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "db:user_word_progress");
   return (data as unknown as { wrong_count: number; last_wrong_at: string | null; words: WordRow }[]).map((r) => ({
     word: toWord(r.words),
     wrongCount: r.wrong_count,
@@ -326,7 +369,7 @@ export interface HomeSummary {
 }
 export async function getHomeSummary(): Promise<HomeSummary> {
   const { data, error } = await supabase.rpc("get_home_summary");
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:get_home_summary");
   const s = data as {
     today_learned: number;
     daily_goal: number | null;
@@ -363,13 +406,18 @@ const TOSS_CANCEL_CODES = new Set(["USER_CANCEL", "PAY_PROCESS_CANCELED"]);
 export async function startProPayment(): Promise<void> {
   await requireUser();
   const { data, error } = await supabase.rpc("create_payment_order", { p_product_code: "pro_pass" });
-  if (error) throw toError(error);
+  if (error) throw toError(error, "rpc:create_payment_order");
   const order = data as { order_id: string; amount: number; order_name: string };
+  logInfo("toss", "order_created", { orderId: order.order_id, amount: order.amount });
   try {
     await requestCardPayment({ orderId: order.order_id, amount: order.amount, orderName: order.order_name });
   } catch (e) {
     const code = (e as { code?: unknown }).code;
-    if (typeof code === "string" && TOSS_CANCEL_CODES.has(code)) return;
+    if (typeof code === "string" && TOSS_CANCEL_CODES.has(code)) {
+      logInfo("toss", "payment_window_canceled", { orderId: order.order_id, code });
+      return;
+    }
+    logError("toss", "payment_window_failed", e, { orderId: order.order_id });
     throw new Error("결제창을 열지 못했어요. 다시 시도해 주세요.");
   }
 }
@@ -380,15 +428,26 @@ export async function startProPayment(): Promise<void> {
  */
 export async function confirmProPayment(p: { paymentKey: string; orderId: string; amount: number }): Promise<{ proUntil: string | null }> {
   await requireUser();
-  const { data, error } = await supabase.functions.invoke("payments-confirm", { body: p });
+  // traceId는 Edge Function 로그(payments-confirm)와 이 로그를 맞춰 볼 때 쓴다
+  const traceId = newTraceId();
+  const startedAt = Date.now();
+  const ctx = { traceId, orderId: p.orderId, amount: p.amount, paymentKey: maskKey(p.paymentKey) };
+  logInfo("toss", "confirm_request", ctx);
+  const { data, error } = await supabase.functions.invoke("payments-confirm", { body: { ...p, traceId } });
+  const durationMs = Date.now() - startedAt;
   if (error) {
     if (error instanceof FunctionsHttpError) {
       // Edge Function이 돌려준 한국어 안내 문구를 그대로 보여준다
-      const body = (await (error.context as Response).json().catch(() => null)) as { message?: unknown } | null;
+      const res = error.context as Response;
+      const body = (await res.json().catch(() => null)) as { code?: unknown; message?: unknown } | null;
+      logError("toss", "confirm_failed", error, { ...ctx, durationMs, httpStatus: res.status, serverCode: body?.code, serverMessage: body?.message });
       if (typeof body?.message === "string") throw new Error(body.message);
+    } else {
+      logError("toss", error instanceof FunctionsFetchError ? "confirm_network_error" : "confirm_relay_error", error, { ...ctx, durationMs });
     }
     if (error instanceof FunctionsFetchError) throw new Error("네트워크 연결을 확인하고 다시 시도해 주세요.");
     throw new Error("결제를 확인하지 못했어요. 다시 시도해 주세요.");
   }
+  logInfo("toss", "confirm_ok", { ...ctx, durationMs, proUntil: (data as { proUntil: string | null }).proUntil });
   return { proUntil: (data as { proUntil: string | null }).proUntil };
 }

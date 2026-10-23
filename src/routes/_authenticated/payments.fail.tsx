@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logWarn } from "@/lib/logger";
 
 /** 토스 결제창이 실패·취소 시 돌려보내는 페이지. 결제가 일어나지 않았으므로 DB는 바꾸지 않는다. */
 export const Route = createFileRoute("/_authenticated/payments/fail")({
   head: () => ({ meta: [{ title: "결제 실패 | 단어루틴" }] }),
-  validateSearch: (s: Record<string, unknown>): { code?: string | undefined } => ({
+  validateSearch: (s: Record<string, unknown>): { code?: string | undefined; message?: string | undefined; orderId?: string | undefined } => ({
     code: typeof s["code"] === "string" ? s["code"] : undefined,
+    message: typeof s["message"] === "string" ? s["message"] : undefined,
+    orderId: typeof s["orderId"] === "string" ? s["orderId"] : undefined,
   }),
   component: PaymentFail,
 });
@@ -25,7 +29,11 @@ const FAIL_MESSAGES: Record<string, { title: string; description: string }> = {
 const DEFAULT_MESSAGE = { title: "결제에 실패했어요", description: "결제가 진행되지 않았어요. 잠시 후 다시 시도해 주세요." };
 
 function PaymentFail() {
-  const { code } = Route.useSearch();
+  const { code, message, orderId } = Route.useSearch();
+  // 화면에는 안내 문구만 보이므로, 토스가 준 원인(code·message)은 로그로 남긴다
+  useEffect(() => {
+    logWarn("toss", "payment_fail_page", { code, message, orderId });
+  }, [code, message, orderId]);
   const { title, description } = (code && FAIL_MESSAGES[code]) || DEFAULT_MESSAGE;
 
   return (

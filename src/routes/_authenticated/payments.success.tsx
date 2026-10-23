@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/components/useErrorToast";
 import { confirmProPayment } from "@/lib/api";
 import { formatKSTDate } from "@/lib/date";
+import { logError, logInfo } from "@/lib/logger";
+import { maskKey } from "@/lib/log-shared";
 
 interface S {
   paymentKey?: string | undefined;
@@ -34,10 +36,16 @@ function PaymentSuccess() {
 
   const confirm = useCallback(() => {
     if (!paymentKey || !orderId || amount === undefined) {
+      logError("toss", "success_page_missing_params", new Error("성공 URL에 결제 정보 없음"), {
+        hasPaymentKey: !!paymentKey,
+        orderId,
+        amount,
+      });
       setState({ kind: "error", message: "결제 정보가 없어요. 처음부터 다시 결제해 주세요." });
       return;
     }
     setState({ kind: "pending" });
+    logInfo("toss", "success_page_confirm", { orderId, amount, paymentKey: maskKey(paymentKey) });
     confirmProPayment({ paymentKey, orderId, amount })
       .then(({ proUntil }) => {
         setState({ kind: "done", proUntil });

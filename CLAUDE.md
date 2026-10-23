@@ -93,6 +93,9 @@ src/lib/supabase.ts         Supabase 클라이언트 (PKCE, api.ts에서만 사�
 src/lib/speech.ts           발음 듣기 (브라우저 Web Speech API, SpeakButton에서 사용)
 src/lib/session.ts          퀴즈 대기열·결과·이어 풀기 기록 (sessionStorage)
 src/lib/toss.ts             토스 결제창 (Client 키만 사용, api.ts에서만 사용)
+src/lib/logger.ts           구조화 로그 (브라우저 → /api/log → 호스팅 로그)
+src/lib/log-shared.ts       로그 공통 코드 (민감 값 가림, 오류 펼치기)
+src/routes/api/log.ts       브라우저 로그 수집 서버 라우트
 src/routes/auth.callback.tsx  Google 로그인·이메일 인증 링크가 돌아오는 페이지
 src/types.ts                공용 타입
 supabase/migrations/        스키마, RLS, RPC (SQL, 적용 완료 9개)
@@ -134,6 +137,13 @@ seed/raw/                   NGSL·TSL 원본 (gitignore, 저장소에 올리지 
 - 연속 학습일(Day): `study_events.study_date` 연속 일수. 하루 1개이며 추가 학습·목표 점수 변경과 무관하다. `words.day_no`와 Day 목록은 없다
 - 목표 점수 → 시작 구간: `START_TIER_BY_TARGET` 상수 사용 (확정: 목표 점수는 시작 tier만 정하고 tier → freq_rank 순으로 진행 후 다음 tier로, PRD FR-03·11.2)
 - 모든 날짜는 KST. DB에서는 `(now() at time zone 'Asia/Seoul')::date`
+
+### 로그
+- Supabase·Google 로그인·토스 호출은 브라우저에서 일어나므로 `src/lib/logger.ts`의 `logInfo`·`logWarn`·`logError`로 남긴다. `/api/log`가 한 줄 JSON으로 출력해 호스팅 로그에 보인다.
+- `area`는 `auth`·`google`·`supabase`·`toss`·`app`, `event`는 소문자 스네이크 케이스. 같은 `sid`로 한 사용자의 흐름을 따라간다.
+- 새 Supabase 호출은 `api.ts`의 `toError(error, "rpc:함수명")`처럼 작업 이름을 넘긴다. 원인(code·details·hint)은 이 로그에 남는다.
+- 비밀번호·토큰·인증 코드·Secret 키는 로그에 남기지 않는다. 결제 키는 `maskKey`로 가린다.
+- Edge Function은 같은 형식의 한 줄 JSON을 쓰며 Supabase 로그에서 `traceId`·`orderId`로 찾는다.
 
 ### 보안
 - 모든 테이블에 RLS 적용. `words`는 authenticated 읽기 전용
