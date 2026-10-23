@@ -18,11 +18,9 @@ export const Route = createFileRoute("/licenses")({
 function Licenses() {
   const router = useRouter();
   const items = [
-    ["단어 목록 및 예문", "단어루틴 자체 제작 샘플 데이터 (예문은 모두 창작)"],
-    ["폰트", "Pretendard (SIL Open Font License 1.1), Noto Sans KR (SIL OFL 1.1)"],
-    ["아이콘", "Lucide Icons (ISC License)"],
-    ["UI 컴포넌트", "shadcn/ui, Radix UI (MIT License)"],
-    ["프레임워크", "React, TanStack Router, Tailwind CSS (MIT License)"],
+    ["NGSL 1.2 (New General Service List)", "Browne, C., Culligan, B., & Phillips, J. www.newgeneralservicelist.com, CC BY-SA 4.0. 학습 단어를 고르는 빈출 순위 기준으로 참고했습니다."],
+    ["TSL 1.2 (TOEIC Service List)", "Browne, C. & Culligan, B. www.newgeneralservicelist.com, CC BY-SA 4.0. 학습 단어를 고르는 빈출 순위 기준으로 참고했습니다."],
+    ["뜻과 예문", "한국어 뜻과 예문은 단어루틴이 직접 작성했습니다. AI로 만든 초안을 검수하며 다듬는 중이며, 기출 문제나 교재 문장은 사용하지 않았습니다."],
   ];
   return (
     <Container>
