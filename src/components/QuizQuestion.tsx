@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+import { HighlightedExample } from "@/components/HighlightedExample";
 import { POS_KO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { QuizChoice } from "@/lib/api";
@@ -10,19 +11,6 @@ interface Props {
   selectedId: string | null;
   submitting: boolean;
   onSelect: (choiceId: string) => void;
-}
-
-/** 예문 안의 해당 단어를 강조한다 (활용형은 그대로 둔다) */
-function HighlightedExample({ text, headword }: { text: string; headword: string }) {
-  const i = text.toLowerCase().indexOf(headword.toLowerCase());
-  if (i < 0) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, i)}
-      <span className="text-primary">{text.slice(i, i + headword.length)}</span>
-      {text.slice(i + headword.length)}
-    </>
-  );
 }
 
 /** 정답 해설 본문. 높이를 미리 잡아 두는 자리 표시에도 같은 내용을 쓴다. */
