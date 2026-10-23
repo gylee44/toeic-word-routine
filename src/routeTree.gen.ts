@@ -22,6 +22,7 @@ import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pr
 import { Route as AuthenticatedReviewRouteImport } from './routes/_authenticated/review'
 import { Route as AuthenticatedWordsRouteImport } from './routes/_authenticated/words'
 import { Route as AuthenticatedWrongNotesRouteImport } from './routes/_authenticated/wrong-notes'
+import { Route as ApiLogRouteImport } from './routes/api/log'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedPaymentsFailRouteImport } from './routes/_authenticated/payments.fail'
 import { Route as AuthenticatedPaymentsSuccessRouteImport } from './routes/_authenticated/payments.success'
@@ -92,6 +93,11 @@ const AuthenticatedWrongNotesRoute = AuthenticatedWrongNotesRouteImport.update({
   path: '/wrong-notes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiLogRoute = ApiLogRouteImport.update({
+  id: '/api/log',
+  path: '/api/log',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/review': typeof AuthenticatedReviewRoute
   '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/api/log': typeof ApiLogRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/payments/fail': typeof AuthenticatedPaymentsFailRoute
   '/payments/success': typeof AuthenticatedPaymentsSuccessRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/review': typeof AuthenticatedReviewRoute
   '/words': typeof AuthenticatedWordsRoute
   '/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/api/log': typeof ApiLogRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/payments/fail': typeof AuthenticatedPaymentsFailRoute
   '/payments/success': typeof AuthenticatedPaymentsSuccessRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/_authenticated/review': typeof AuthenticatedReviewRoute
   '/_authenticated/words': typeof AuthenticatedWordsRoute
   '/_authenticated/wrong-notes': typeof AuthenticatedWrongNotesRoute
+  '/api/log': typeof ApiLogRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/payments/fail': typeof AuthenticatedPaymentsFailRoute
   '/_authenticated/payments/success': typeof AuthenticatedPaymentsSuccessRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/words'
     | '/wrong-notes'
+    | '/api/log'
     | '/auth/callback'
     | '/payments/fail'
     | '/payments/success'
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/words'
     | '/wrong-notes'
+    | '/api/log'
     | '/auth/callback'
     | '/payments/fail'
     | '/payments/success'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/review'
     | '/_authenticated/words'
     | '/_authenticated/wrong-notes'
+    | '/api/log'
     | '/auth/callback'
     | '/_authenticated/payments/fail'
     | '/_authenticated/payments/success'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   LicensesRoute: typeof LicensesRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  ApiLogRoute: typeof ApiLogRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
@@ -342,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWrongNotesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/log': {
+      id: '/api/log'
+      path: '/api/log'
+      fullPath: '/api/log'
+      preLoaderRoute: typeof ApiLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -420,6 +440,7 @@ const rootRouteChildren: RootRouteChildren = {
   LicensesRoute: LicensesRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  ApiLogRoute: ApiLogRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport

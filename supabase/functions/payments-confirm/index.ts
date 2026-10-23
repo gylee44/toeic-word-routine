@@ -24,6 +24,15 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+/**
+ * 한 줄 JSON 로그. Supabase 대시보드 Edge Functions > Logs에서 event, orderId, traceId로 검색한다.
+ * Secret 키, Authorization 헤더, 토스 원문 응답은 남기지 않는다.
+ */
+function log(level: "info" | "warn" | "error", event: string, fields: Record<string, unknown> = {}) {
+  const line = JSON.stringify({ ts: new Date().toISOString(), area: "toss", fn: "payments-confirm", level, event, ...fields });
+  (level === "error" ? console.error : level === "warn" ? console.warn : console.log)(line);
+}
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const fail = (status: number, code: string, message: string) => json(status, { code, message });
@@ -78,35 +87,49 @@ async function toss(path: string, secretKey: string, init: { method: string; bod
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "허용하지 않는 요청이에요.");
+  const startedAt = Date.now();
+  let ctx: Record<string, unknown> = {};
+  const elapsed = () => Date.now() - startedAt;
 
   const url = Deno.env.get("SUPABASE_URL");
   const publishableKey = supabaseKey("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
   const serverKey = supabaseKey("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !publishableKey || !serverKey) {
-    console.error("config_missing_supabase");
+    log("error", "config_missing_supabase", { hasUrl: !!url, hasPublishableKey: !!publishableKey, hasServerKey: !!serverKey });
     return fail(500, "CONFIG_ERROR", CONFIG_MESSAGE);
   }
 
   // 1. 로그인 사용자 확인
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return fail(401, "UNAUTHORIZED", "로그인이 필요해요.");
+  if (!token) {
+    log("warn", "no_auth_header");
+    return fail(401, "UNAUTHORIZED", "로그인이 필요해요.");
+  }
   const userClient = createClient(url, publishableKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data: userData, error: userError } = await userClient.auth.getUser(token);
-  if (userError || !userData.user) return fail(401, "UNAUTHORIZED", "로그인이 필요해요.");
+  if (userError || !userData.user) {
+    log("warn", "get_user_failed", { errorMessage: userError?.message, errorStatus: userError?.status });
+    return fail(401, "UNAUTHORIZED", "로그인이 필요해요.");
+  }
 
   // 2. 요청 값 검증
   const body = await req.json().catch(() => null);
   const paymentKey = body?.paymentKey;
   const orderId = body?.orderId;
   const amount = body?.amount;
+  // 클라이언트 로그와 맞춰 보는 ID. 형식이 다르면 새로 만든다
+  const traceId = typeof body?.traceId === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(body.traceId) ? body.traceId : crypto.randomUUID().slice(0, 8);
+  ctx = { traceId, userId: userData.user.id.slice(0, 8), orderId: typeof orderId === "string" ? orderId.slice(0, 64) : null, amount };
+  log("info", "request_received", ctx);
   if (
     typeof paymentKey !== "string" || paymentKey.length < 1 || paymentKey.length > 200 ||
     typeof orderId !== "string" || !ORDER_ID_RE.test(orderId) ||
     !Number.isInteger(amount) || amount <= 0
   ) {
+    log("warn", "invalid_request", { ...ctx, hasPaymentKey: typeof paymentKey === "string", amountType: typeof amount });
     return fail(400, "INVALID_REQUEST", "잘못된 결제 정보예요.");
   }
 
@@ -117,38 +140,62 @@ Deno.serve(async (req) => {
     .eq("order_id", orderId)
     .maybeSingle();
   if (orderError) {
-    console.error("order_lookup_failed", orderError.code);
+    log("error", "order_lookup_failed", { ...ctx, dbCode: orderError.code, dbMessage: orderError.message, dbDetails: orderError.details, dbHint: orderError.hint });
     return fail(500, "ORDER_LOOKUP_FAILED", "주문을 확인하지 못했어요. 다시 시도해 주세요.");
   }
-  if (!order) return fail(404, "ORDER_NOT_FOUND", "주문을 찾을 수 없어요.");
+  if (!order) {
+    log("warn", "order_not_found", ctx);
+    return fail(404, "ORDER_NOT_FOUND", "주문을 찾을 수 없어요.");
+  }
+  ctx = { ...ctx, orderStatus: order.status, orderAmount: order.amount };
 
   if (order.status === "paid") {
-    if (order.payment_key !== paymentKey) return fail(409, "ORDER_ALREADY_PAID", "이미 처리된 주문이에요.");
+    if (order.payment_key !== paymentKey) {
+      log("warn", "already_paid_key_mismatch", ctx);
+      return fail(409, "ORDER_ALREADY_PAID", "이미 처리된 주문이에요.");
+    }
     // 새로고침 등으로 같은 승인이 다시 오면 토스를 다시 호출하지 않고 현재 이용 기간을 돌려준다
     const { data: profile } = await userClient.from("profiles").select("pro_until").eq("id", userData.user.id).single();
+    log("info", "already_paid_replay", { ...ctx, durationMs: elapsed() });
     return json(200, { status: "paid", proUntil: profile?.pro_until ?? null });
   }
-  if (order.status !== "pending") return fail(409, "ORDER_NOT_PENDING", "이미 처리된 주문이에요. 처음부터 다시 결제해 주세요.");
-  if (order.amount !== amount) return fail(400, "AMOUNT_MISMATCH", "결제 금액이 주문과 달라요.");
+  if (order.status !== "pending") {
+    log("warn", "order_not_pending", ctx);
+    return fail(409, "ORDER_NOT_PENDING", "이미 처리된 주문이에요. 처음부터 다시 결제해 주세요.");
+  }
+  if (order.amount !== amount) {
+    log("error", "amount_mismatch", ctx);
+    return fail(400, "AMOUNT_MISMATCH", "결제 금액이 주문과 달라요.");
+  }
 
   const admin = createClient(url, serverKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   // 4. 토스 승인
   const tossSecretKey = Deno.env.get("TOSS_SECRET_KEY");
   if (!tossSecretKey) {
-    console.error("config_missing_toss");
+    log("error", "config_missing_toss", { ...ctx, hint: "Edge Function Secrets에 TOSS_SECRET_KEY 등록 필요" });
     return fail(500, "CONFIG_ERROR", CONFIG_MESSAGE);
   }
+  log("info", "toss_confirm_call", ctx);
+  const tossStart = Date.now();
   const confirm = await toss("/confirm", tossSecretKey, {
     method: "POST",
     body: { paymentKey, orderId, amount },
     idempotencyKey: orderId,
   });
   if (!confirm) {
-    console.error("toss_confirm_unreachable", orderId);
+    log("error", "toss_confirm_unreachable", { ...ctx, tossMs: Date.now() - tossStart, durationMs: elapsed() });
     return fail(502, "CONFIRM_PENDING", RETRY_MESSAGE);
   }
 
+  log(confirm.ok ? "info" : "warn", "toss_confirm_response", {
+    ...ctx,
+    tossStatus: confirm.status,
+    tossMs: Date.now() - tossStart,
+    // 실패 시 토스 오류 코드와 메시지. 승인 성공 응답은 카드 정보가 있어 통째로 남기지 않는다
+    tossCode: confirm.ok ? undefined : confirm.data?.code,
+    tossMessage: confirm.ok ? undefined : confirm.data?.message,
+  });
   let payment: TossPayment | null = confirm.ok ? (confirm.data as TossPayment) : null;
   if (!confirm.ok) {
     const code: string = typeof confirm.data?.code === "string" ? confirm.data.code : "UNKNOWN";
@@ -156,18 +203,18 @@ Deno.serve(async (req) => {
       // 이미 승인된 결제면 결제 정보를 조회해 반영한다
       const lookup = await toss(`/${encodeURIComponent(paymentKey)}`, tossSecretKey, { method: "GET" });
       if (!lookup?.ok) {
-        console.error("toss_lookup_failed", orderId, lookup?.status);
+        log("error", "toss_lookup_failed", { ...ctx, tossStatus: lookup?.status, tossCode: lookup?.data?.code, tossMessage: lookup?.data?.message });
         return fail(502, "CONFIRM_PENDING", RETRY_MESSAGE);
       }
       payment = lookup.data as TossPayment;
     } else if (confirm.status >= 500 || RETRYABLE_CODES.has(code)) {
-      console.error("toss_confirm_retryable", orderId, code);
+      log("error", "toss_confirm_retryable", { ...ctx, tossCode: code, tossStatus: confirm.status, durationMs: elapsed() });
       return fail(502, "CONFIRM_PENDING", RETRY_MESSAGE);
     } else {
       const message = typeof confirm.data?.message === "string" ? confirm.data.message.slice(0, 300) : "결제를 승인하지 못했어요.";
-      console.error("toss_confirm_rejected", orderId, code);
+      log("warn", "toss_confirm_rejected", { ...ctx, tossCode: code, tossMessage: message, durationMs: elapsed() });
       const { error } = await admin.rpc("fail_payment", { p_order_id: orderId, p_code: code, p_message: message });
-      if (error) console.error("fail_payment_failed", orderId, error.code);
+      if (error) log("error", "fail_payment_failed", { ...ctx, dbCode: error.code, dbMessage: error.message });
       return fail(400, code, message);
     }
   }
@@ -177,7 +224,13 @@ Deno.serve(async (req) => {
     !payment || payment.status !== "DONE" || payment.orderId !== orderId ||
     payment.paymentKey !== paymentKey || payment.totalAmount !== order.amount
   ) {
-    console.error("toss_payment_mismatch", orderId, payment?.status);
+    log("error", "toss_payment_mismatch", {
+      ...ctx,
+      tossPaymentStatus: payment?.status,
+      orderIdMatch: payment?.orderId === orderId,
+      keyMatch: payment?.paymentKey === paymentKey,
+      amountMatch: payment?.totalAmount === order.amount,
+    });
     return fail(500, "PAYMENT_MISMATCH", "결제 정보가 주문과 맞지 않아 이용권을 반영하지 않았어요.");
   }
 
@@ -189,9 +242,11 @@ Deno.serve(async (req) => {
   });
   if (completeError) {
     // 토스 승인은 끝났지만 DB 반영이 실패한 경우. 다시 요청하면 같은 Idempotency-Key로 같은 승인 결과를 받아 반영한다
-    console.error("complete_payment_failed", orderId, completeError.code);
+    log("error", "complete_payment_failed", { ...ctx, dbCode: completeError.code, dbMessage: completeError.message, dbDetails: completeError.details, dbHint: completeError.hint, durationMs: elapsed() });
     return fail(500, "COMPLETE_FAILED", "결제는 승인됐지만 이용권 반영이 늦어지고 있어요. 다시 시도해 주세요.");
   }
 
-  return json(200, { status: "paid", proUntil: (result as { pro_until: string | null }).pro_until });
+  const proUntil = (result as { pro_until: string | null }).pro_until;
+  log("info", "payment_completed", { ...ctx, method: payment.method, proUntil, durationMs: elapsed() });
+  return json(200, { status: "paid", proUntil });
 });
