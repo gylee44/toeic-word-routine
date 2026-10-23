@@ -8,18 +8,19 @@
 - 토익 빈출 단어를 플래시카드 → 4지선다 퀴즈 → 자동 복습(SRS) → 오답노트로 학습하는 **모바일 우선 반응형 웹서비스**
 - 모든 학습 기능은 **로그인 필수** (게스트 모드 없음)
 - 목표: **10/23(금) Demo Day까지 MVP 배포 완료**
-- 현재 상태: DB는 Supabase에 구축 완료, 프론트엔드도 Supabase 연동 완료(mock·localStorage 제거). 토스페이먼츠 Pro 이용권 결제(테스트 키)까지 구현했다. 배포 전 화면 검증 단계
+- 현재 상태: DB는 Supabase에 구축 완료, 프론트엔드도 Supabase 연동 완료(mock·localStorage 제거). 토스페이먼츠 Pro 이용권 결제(테스트 키)까지 구현했다. AWS Amplify에 배포했고(`https://main.d2rfe0nan4mg52.amplifyapp.com/`), 배포 후 화면 검증 단계
 
-### 구현 현황 (2026-10-22)
+### 구현 현황 (2026-10-23)
 
 | 영역 | 상태 |
 |---|---|
 | Supabase DB | 완료. 테이블 5개(`profiles`, `words`, `user_word_progress`, `study_events`, `payment_orders`), RLS, 가입 트리거, RPC 6개 + 결제 RPC 4개, 단어 400개(tier당 80개, AI 초안, 사람 검수 전) |
-| 결제 (PRD v0.9) | 구현 완료, 실결제 흐름 검증 전(10/22). 결제 RPC·상한 판정 함수(`has_unlimited_learning`), 승인 Edge Function `payments-confirm`(MCP 배포, `verify_jwt` false), Pro·결제 결과 화면. 남은 일: Edge Function Secrets에 `TOSS_SECRET_KEY` 등록, 브라우저 테스트 결제 |
+| 결제 (PRD v0.9) | 구현 완료, 배포 사이트에서 테스트 키(`test_`)로 결제 흐름 확인(10/23). 실제 청구는 없고, 실결제 전환(`live_` 키)은 별도. 결제 RPC·상한 판정 함수(`has_unlimited_learning`), 승인 Edge Function `payments-confirm`(MCP 배포, `verify_jwt` false), Pro·결제 결과 화면 |
+| 배포 | AWS Amplify SSR(`aws_amplify` 프리셋, `amplify.yml`, Node 22)로 `main` 배포 완료. Supabase Redirect URLs 등록 완료. 라이선스 화면(`/licenses`)은 NGSL/TSL 출처 표기 중심으로 정리해 배포됨 |
 | 마이그레이션 | `supabase/migrations/` 9개. Supabase CLI는 설치하지 않았고 MCP `apply_migration`으로 적용한 뒤 로컬 파일명을 원격 버전에 맞췄다 |
 | 검증 | DB 쪽 CRUD, RLS, 하루 상한, 복습 분산, 관리자 무제한을 테스트 계정으로 확인했다. 항목별 결과는 `docs/acceptance-checklist.md` |
 | 프론트엔드 | `api.ts`를 Supabase로 교체했다(이메일 인증, Google 로그인, 학습·퀴즈·복습·오답노트·홈). Day 목록 화면과 mock 단어는 삭제했다. 실제 Supabase로 `api.ts` 전 함수를 테스트 계정으로 검증했다. 단어장 화면(`/words`), 브라우저 음성 발음 듣기, 퀴즈 이어 풀기를 추가했다(PRD v0.8). Pro 이용권 화면(`/pro`)과 결제 결과 화면(`/payments/success`, `/payments/fail`)을 추가했다(PRD v0.9) |
-| 남은 일 | 토스 테스트 결제 성공 경로 실결제 확인(결제창에서 끝까지 결제), 브라우저 화면 검증(모바일·데스크톱), Google 로그인 실제 확인, Supabase Redirect URLs 설정, 데모 계정 시드, 단어 검수, 배포·CI, 라이선스 화면(P1) |
+| 남은 일 | 브라우저 화면 검증(모바일·데스크톱), Google 로그인 실제 확인, 데모 계정 시드, 단어 검수, CI(GitHub Actions) |
 
 ## 2. 응답 및 작업 규칙
 
